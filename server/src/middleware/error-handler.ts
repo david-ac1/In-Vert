@@ -10,10 +10,14 @@ export function errorHandler(
   _next: NextFunction,
 ) {
   if (error instanceof ZodError) {
+    const flat = error.flatten();
+    const fieldMessages = Object.entries(flat.fieldErrors)
+      .map(([field, msgs]) => `${field}: ${(msgs as string[]).join(", ")}`)
+      .join("; ");
     return response.status(400).json({
       error: "ValidationError",
-      message: "Request validation failed",
-      details: error.flatten(),
+      message: fieldMessages ? `Validation failed — ${fieldMessages}` : "Request validation failed",
+      details: flat,
     });
   }
 

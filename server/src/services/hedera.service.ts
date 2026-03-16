@@ -72,7 +72,7 @@ export class HederaService {
     }
 
     const client = env.HEDERA_NETWORK === "mainnet" ? Client.forMainnet() : Client.forTestnet();
-    client.setOperator(env.HEDERA_ACCOUNT_ID, PrivateKey.fromStringED25519(env.HEDERA_PRIVATE_KEY));
+    client.setOperator(env.HEDERA_ACCOUNT_ID, PrivateKey.fromString(env.HEDERA_PRIVATE_KEY));
     this.client = client;
     return client;
   }
@@ -111,7 +111,7 @@ export class HederaService {
       throw new HttpError(500, "Hedera private key is required to create reward token");
     }
 
-    const supplyKey = PrivateKey.fromStringED25519(env.HEDERA_PRIVATE_KEY);
+    const supplyKey = PrivateKey.fromString(env.HEDERA_PRIVATE_KEY);
     const response = await new TokenCreateTransaction()
       .setTokenName(env.HEDERA_TOKEN_NAME)
       .setTokenSymbol(env.HEDERA_TOKEN_SYMBOL)

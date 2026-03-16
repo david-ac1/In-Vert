@@ -4,7 +4,7 @@ import type { ZodTypeAny } from "zod";
 export function validateRequest(schema: ZodTypeAny) {
   return (request: Request, _response: Response, next: NextFunction) => {
     const result = schema.parse({
-      body: request.body,
+      body: request.body ?? {},
       params: request.params,
       query: request.query,
     }) as {

@@ -3,7 +3,7 @@ import { z } from "zod";
 export const createActionSchema = z.object({
   body: z.object({
     actionType: z.string().min(2),
-    description: z.string().min(10),
+    description: z.string().min(3),
     quantity: z.number().int().positive().max(10000),
     location: z.string().min(2),
     photoUrl: z.string().url(),
