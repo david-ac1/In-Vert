@@ -1,3 +1,4 @@
+import path from "path";
 import cors from "cors";
 import express from "express";
 import { registerRoutes } from "./routes/index.js";
@@ -15,6 +16,10 @@ export function createApp() {
     }),
   );
   app.use(express.json({ limit: "2mb" }));
+
+  // Serve uploaded evidence files
+  const uploadsDir = path.resolve(process.cwd(), "uploads");
+  app.use("/uploads", express.static(uploadsDir));
 
   registerRoutes(app);
   app.use(notFoundHandler);

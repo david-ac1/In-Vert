@@ -80,4 +80,14 @@ export const api = {
     }),
   getActionStatus: async (actionId: string) =>
     readJson<ActionStatusResponse>(`/api/actions/${actionId}/status`),
+  uploadEvidence: async (file: File) => {
+    const form = new FormData();
+    form.append("file", file);
+    const response = await fetch("/api/upload", { method: "POST", body: form });
+    if (!response.ok) {
+      const errorBody = await response.json().catch(() => ({}));
+      throw new Error((errorBody as { message?: string }).message ?? "Upload failed");
+    }
+    return (await response.json()) as { url: string };
+  },
 };

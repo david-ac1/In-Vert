@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { api, type ActionStatusResponse } from "@/lib/api";
 
 const vectors = [
@@ -14,13 +14,44 @@ export function SubmitActionForm() {
   const [quantity, setQuantity] = useState(1);
   const [description, setDescription] = useState("");
   const [location, setLocation] = useState("Lagos");
-  const [photoUrl, setPhotoUrl] = useState("https://example.com/evidence.jpg");
-  const [walletAddress, setWalletAddress] = useState("0.0.123456");
-  const [username, setUsername] = useState("david");
+  const [evidenceMode, setEvidenceMode] = useState<"url" | "file">("url");
+  const [photoUrl, setPhotoUrl] = useState("");
+  const [uploadedFile, setUploadedFile] = useState<File | null>(null);
+  const [uploadPreview, setUploadPreview] = useState<string | null>(null);
+  const [uploadProgress, setUploadProgress] = useState<"idle" | "uploading" | "done" | "error">("idle");
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [walletAddress, setWalletAddress] = useState("");
+  const [username, setUsername] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [status, setStatus] = useState<ActionStatusResponse | null>(null);
   const [actionId, setActionId] = useState<string | null>(null);
+
+  function handleFileChange(event: React.ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    setUploadedFile(file);
+    setUploadProgress("idle");
+    setUploadPreview(URL.createObjectURL(file));
+    setPhotoUrl(""); // will be populated on submit
+  }
+
+  async function resolveEvidenceUrl(): Promise<string> {
+    if (evidenceMode === "url") {
+      if (!photoUrl) throw new Error("Please enter an evidence URL");
+      return photoUrl;
+    }
+    if (!uploadedFile) throw new Error("Please select an evidence file");
+    setUploadProgress("uploading");
+    try {
+      const { url } = await api.uploadEvidence(uploadedFile);
+      setUploadProgress("done");
+      return url;
+    } catch (uploadError) {
+      setUploadProgress("error");
+      throw uploadError;
+    }
+  }
 
   const projectedYield =
     selectedVector.value === "tree_planting"
@@ -49,12 +80,13 @@ export function SubmitActionForm() {
     setStatus(null);
 
     try {
+      const resolvedUrl = await resolveEvidenceUrl();
       const result = await api.createAction({
         actionType: selectedVector.value,
         description,
         quantity,
         location,
-        photoUrl,
+        photoUrl: resolvedUrl,
         walletAddress,
         username,
       });
@@ -154,18 +186,64 @@ export function SubmitActionForm() {
             <label className="mb-4 block text-xs font-black uppercase tracking-[0.25em] text-black">
               04. Evidence Protocol
             </label>
-            <div className="border-2 border-dashed border-zinc-300 p-12 text-center transition-all hover:border-black hover:bg-zinc-50">
-              <span className="text-sm font-black uppercase tracking-widest text-zinc-500">
-                Evidence URL
-              </span>
-              <input
-                className="mt-4 h-12 w-full border-2 border-black px-4 text-sm font-bold focus:outline-none"
-                type="url"
-                value={photoUrl}
-                onChange={(event) => setPhotoUrl(event.target.value)}
-                required
-              />
+
+            {/* Mode toggle */}
+            <div className="mb-4 flex border-2 border-black">
+              <button
+                type="button"
+                onClick={() => setEvidenceMode("url")}
+                className={`flex-1 py-2 text-xs font-black uppercase tracking-widest transition-all ${evidenceMode === "url" ? "bg-black text-white" : "bg-white text-zinc-500 hover:bg-zinc-50"}`}
+              >
+                Enter URL
+              </button>
+              <button
+                type="button"
+                onClick={() => setEvidenceMode("file")}
+                className={`flex-1 py-2 text-xs font-black uppercase tracking-widest transition-all ${evidenceMode === "file" ? "bg-black text-white" : "bg-white text-zinc-500 hover:bg-zinc-50"}`}
+              >
+                Upload File
+              </button>
             </div>
+
+            {evidenceMode === "url" ? (
+              <div className="border-2 border-dashed border-zinc-300 p-6 transition-all hover:border-black hover:bg-zinc-50">
+                <input
+                  className="h-12 w-full border-2 border-black px-4 text-sm font-bold placeholder:text-zinc-300 focus:outline-none"
+                  type="url"
+                  placeholder="https://example.com/photo.jpg"
+                  value={photoUrl}
+                  onChange={(event) => setPhotoUrl(event.target.value)}
+                  required={evidenceMode === "url"}
+                />
+              </div>
+            ) : (
+              <div
+                role="button"
+                tabIndex={0}
+                className="flex cursor-pointer flex-col items-center justify-center gap-4 border-2 border-dashed border-zinc-300 p-12 text-center transition-all hover:border-black hover:bg-zinc-50"
+                onClick={() => fileInputRef.current?.click()}
+                onKeyDown={(e) => e.key === "Enter" && fileInputRef.current?.click()}
+              >
+                {uploadPreview ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={uploadPreview} alt="Evidence preview" className="max-h-40 border-2 border-black object-contain" />
+                ) : (
+                  <span className="text-sm font-black uppercase tracking-widest text-zinc-500">
+                    {uploadProgress === "uploading" ? "Uploading..." : "Click to select image"}
+                  </span>
+                )}
+                {uploadedFile && (
+                  <span className="text-xs font-bold text-zinc-600">{uploadedFile.name}</span>
+                )}
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={handleFileChange}
+                />
+              </div>
+            )}
           </div>
 
           <div className="space-y-6">

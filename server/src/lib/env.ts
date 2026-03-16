@@ -1,7 +1,11 @@
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 import dotenv from "dotenv";
 import { z } from "zod";
 
-dotenv.config();
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+dotenv.config({ path: path.resolve(__dirname, "../../.env") });
 
 const rawEnvSchema = z.object({
   PORT: z.coerce.number().default(4000),
@@ -29,7 +33,8 @@ const rawEnvSchema = z.object({
 });
 
 const rawEnv = rawEnvSchema.parse(process.env);
-const databaseUrl = rawEnv.DATABASE_URL ?? rawEnv.SUPABASE_DATABASE_URL;
+const databaseUrl =
+  rawEnv.DATABASE_URL?.trim() || rawEnv.SUPABASE_DATABASE_URL?.trim();
 
 if (!databaseUrl) {
   throw new Error("DATABASE_URL or SUPABASE_DATABASE_URL must be provided");
