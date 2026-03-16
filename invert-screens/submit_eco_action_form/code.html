@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>In-Vert Submission Form</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#10b981", // In-Vert Emerald
+                        "primary-dark": "#059669",
+                        "background-pure": "#ffffff",
+                        "accent": "#000000",
+                    },
+                    fontFamily: {
+                        "display": ["Space Grotesk", "sans-serif"]
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0px",
+                        "lg": "0px",
+                        "xl": "0px",
+                        "2xl": "0px",
+                        "full": "9999px"
+                    },
+                },
+            },
+        }
+    </script>
+<style type="text/tailwindcss">
+        @layer base {
+            .material-symbols-outlined {
+                font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+            }
+            body {
+                font-family: "Space Grotesk", sans-serif;
+            }::-webkit-scrollbar {
+                width: 8px;
+            }
+            ::-webkit-scrollbar-track {
+                background: #f1f1f1;
+            }
+            ::-webkit-scrollbar-thumb {
+                background: #000;
+            }
+        }
+        .geometric-logo {
+            position: relative;
+            width: 36px;
+            height: 36px;
+            background: #000;
+            clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .geometric-inner {
+            width: 18px;
+            height: 18px;
+            background: #10b981;
+            transform: rotate(45deg);
+        }
+    </style>
+</head>
+<body class="bg-background-pure min-h-screen text-slate-900 selection:bg-primary/20">
+<header class="flex items-center justify-between border-b-2 border-black bg-white/95 backdrop-blur-md px-6 md:px-10 py-4 sticky top-0 z-50">
+<div class="flex items-center gap-4">
+<div class="geometric-logo">
+<div class="geometric-inner"></div>
+</div>
+<h2 class="text-2xl font-black tracking-tighter text-black uppercase">In-Vert</h2>
+</div>
+<div class="flex flex-1 justify-end gap-10 items-center">
+<nav class="hidden md:flex items-center gap-8">
+<a class="text-black text-sm font-bold uppercase tracking-widest hover:text-primary transition-colors" href="#">Manifesto</a>
+<a class="text-black text-sm font-bold uppercase tracking-widest hover:text-primary transition-colors" href="#">Impact</a>
+<a class="text-black text-sm font-bold uppercase tracking-widest hover:text-primary transition-colors" href="#">Nodes</a>
+</nav>
+<div class="flex items-center gap-4">
+<button class="flex items-center justify-center h-10 px-6 bg-black text-white text-xs font-black tracking-widest uppercase hover:bg-zinc-800 transition-all">
+                Connect Wallet
+            </button>
+<div class="bg-center bg-no-repeat aspect-square bg-cover rounded-full size-10 border-2 border-black shadow-sm" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuA4iIKBaI90jWlmggRvdvjWpfzkrpA2NjgFDslXRmR4MSQhwDMB9frSKYrqudbOR8Yi3lrdRo980SGVGBN5hG1aJldq8P4B9BBq-WE-lDXRKe1UPXRpVZgCryy-piB0mPv9RWFr1zM0USYJCSJURGGVtkHOikUWYyhuFKYEVi48pPIG7vbkdT6ifR1X8VsJGCMaT2O5lWkHiPZlKXhKgy2lO1IXDm5acatxZmNdkuDF7xMY0LJjJ4QCeisnVQ81SfbHEtHzkCoCzgI");'></div>
+</div>
+</div>
+</header>
+<main class="max-w-[1200px] mx-auto px-4 py-16 flex flex-col items-center">
+<div class="text-center mb-16">
+<div class="inline-flex items-center gap-2 px-4 py-1.5 border-2 border-black bg-white text-black text-[10px] font-black uppercase tracking-[0.2em] mb-6">
+<span class="material-symbols-outlined text-sm">verified</span> Verified Action Protocol
+        </div>
+<h1 class="text-5xl md:text-7xl font-black tracking-tighter mb-6 text-black uppercase">Submit Action</h1>
+<p class="text-zinc-500 text-xl max-w-xl mx-auto font-medium">Contribute to the inverted sustainability model. High-impact verified data submission.</p>
+</div>
+<div class="w-full max-w-2xl bg-white border-2 border-black shadow-[12px_12px_0px_0px_rgba(0,0,0,1)] overflow-hidden">
+<div class="p-8 md:p-12">
+<div class="mb-12">
+<label class="block text-xs font-black mb-6 uppercase tracking-[0.25em] text-black">01. Select Vector</label>
+<div class="grid grid-cols-3 gap-1">
+<button class="flex flex-col items-center justify-center gap-4 p-6 border-2 border-black bg-primary text-white transition-all">
+<span class="material-symbols-outlined text-4xl">eco</span>
+<span class="text-xs font-black uppercase tracking-widest">Nature</span>
+</button>
+<button class="flex flex-col items-center justify-center gap-4 p-6 border-2 border-black hover:bg-zinc-50 transition-all group">
+<span class="material-symbols-outlined text-4xl text-zinc-300 group-hover:text-black transition-colors">cycle</span>
+<span class="text-xs font-black text-zinc-400 group-hover:text-black uppercase tracking-widest">Circularity</span>
+</button>
+<button class="flex flex-col items-center justify-center gap-4 p-6 border-2 border-black hover:bg-zinc-50 transition-all group">
+<span class="material-symbols-outlined text-4xl text-zinc-300 group-hover:text-black transition-colors">electric_bolt</span>
+<span class="text-xs font-black text-zinc-400 group-hover:text-black uppercase tracking-widest">Energy</span>
+</button>
+</div>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-3 gap-8 mb-12">
+<div class="md:col-span-1">
+<label class="block text-xs font-black mb-4 uppercase tracking-[0.25em] text-black">02. Magnitude</label>
+<div class="relative flex items-center">
+<button class="absolute left-2 size-8 flex items-center justify-center border border-black hover:bg-zinc-100 text-black transition-colors">
+<span class="material-symbols-outlined text-sm">remove</span>
+</button>
+<input class="w-full h-14 text-center font-black border-2 border-black focus:ring-0 text-xl" type="number" value="1"/>
+<button class="absolute right-2 size-8 flex items-center justify-center border border-black hover:bg-zinc-100 text-black transition-colors">
+<span class="material-symbols-outlined text-sm">add</span>
+</button>
+</div>
+</div>
+<div class="md:col-span-2">
+<label class="block text-xs font-black mb-4 uppercase tracking-[0.25em] text-black">03. Specification</label>
+<input class="w-full h-14 border-2 border-black focus:ring-0 px-4 font-bold text-sm placeholder:text-zinc-300" placeholder="Brief metadata description..." type="text"/>
+</div>
+</div>
+<div class="mb-14">
+<label class="block text-xs font-black mb-4 uppercase tracking-[0.25em] text-black">04. Evidence Protocol</label>
+<div class="border-2 border-dashed border-zinc-300 p-12 flex flex-col items-center justify-center hover:border-black hover:bg-zinc-50 transition-all cursor-pointer group">
+<div class="size-16 bg-zinc-100 border-2 border-transparent group-hover:border-black flex items-center justify-center mb-6 transition-all">
+<span class="material-symbols-outlined text-3xl text-zinc-400 group-hover:text-black">qr_code_scanner</span>
+</div>
+<p class="text-sm font-black uppercase tracking-widest text-zinc-500 group-hover:text-black">Upload proof of impact</p>
+<p class="text-[10px] text-zinc-400 mt-3 uppercase tracking-[0.2em]">Assets: JPG, PNG, PDF (Max 15MB)</p>
+</div>
+</div>
+<div class="space-y-6">
+<button class="w-full bg-primary hover:bg-primary-dark border-2 border-black py-5 text-white font-black text-xl uppercase tracking-widest flex items-center justify-center gap-4 transition-all active:translate-y-1 active:shadow-none shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]">
+<span class="material-symbols-outlined">send</span>
+                    Transmit Submission
+                </button>
+<div class="flex flex-col md:flex-row items-center justify-between gap-4 px-1">
+<div class="flex items-center gap-4 text-[10px] font-black uppercase tracking-widest text-zinc-400">
+<div class="flex items-center gap-2 py-2 px-3 border border-zinc-200">
+<span class="material-symbols-outlined text-primary text-base">database</span>
+<span>Gas: <span class="text-black">0.0004 ETH</span></span>
+</div>
+<div class="flex items-center gap-2 py-2 px-3 border border-zinc-200">
+<span class="material-symbols-outlined text-primary text-base">token</span>
+<span>Yield: <span class="text-black">120 $IVRT</span></span>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="bg-zinc-50 border-t-2 border-black p-6 flex flex-col md:flex-row justify-between items-center gap-4">
+<div class="flex items-center gap-3">
+<div class="size-2.5 bg-primary animate-pulse"></div>
+<span class="text-[10px] font-black uppercase tracking-[0.2em] text-black">In-Vert Mainnet Node Active</span>
+</div>
+<div class="text-[10px] text-black font-black uppercase tracking-[0.2em]">
+                Block #19284756 • Secured by Proof-of-Eco
+            </div>
+</div>
+</div>
+<div class="mt-24 grid grid-cols-1 md:grid-cols-3 gap-16 w-full max-w-5xl px-4">
+<div class="flex flex-col items-start text-left gap-4">
+<div class="size-14 border-2 border-black flex items-center justify-center mb-2">
+<span class="material-symbols-outlined text-black text-3xl">terminal</span>
+</div>
+<h4 class="font-black text-black uppercase tracking-widest text-sm">Programmable Impact</h4>
+<p class="text-sm text-zinc-500 font-medium leading-relaxed">Dynamic verification through In-Vert's geometric consensus engine.</p>
+</div>
+<div class="flex flex-col items-start text-left gap-4">
+<div class="size-14 border-2 border-black flex items-center justify-center mb-2">
+<span class="material-symbols-outlined text-black text-3xl">token</span>
+</div>
+<h4 class="font-black text-black uppercase tracking-widest text-sm">Asset Tokenization</h4>
+<p class="text-sm text-zinc-500 font-medium leading-relaxed">Convert your verified ecological footprints into tradeable carbon offsets.</p>
+</div>
+<div class="flex flex-col items-start text-left gap-4">
+<div class="size-14 border-2 border-black flex items-center justify-center mb-2">
+<span class="material-symbols-outlined text-black text-3xl">grid_view</span>
+</div>
+<h4 class="font-black text-black uppercase tracking-widest text-sm">Decentralized Governance</h4>
+<p class="text-sm text-zinc-500 font-medium leading-relaxed">Your actions grant voting weight in the In-Vert sustainability treasury.</p>
+</div>
+</div>
+</main>
+<footer class="py-20 text-center bg-white border-t-2 border-black mt-20">
+<div class="flex flex-col items-center gap-8 px-12">
+<div class="geometric-logo scale-75 opacity-50 grayscale">
+<div class="geometric-inner"></div>
+</div>
+<div class="flex items-center gap-8">
+<span class="text-black text-[10px] font-black tracking-[0.3em] uppercase">© 2024 In-Vert Protocol</span>
+<span class="text-zinc-200 text-[10px] font-black uppercase tracking-widest">/</span>
+<a class="text-black text-[10px] font-black tracking-[0.3em] uppercase hover:text-primary transition-colors" href="#">Github</a>
+<span class="text-zinc-200 text-[10px] font-black uppercase tracking-widest">/</span>
+<a class="text-black text-[10px] font-black tracking-[0.3em] uppercase hover:text-primary transition-colors" href="#">Documentation</a>
+</div>
+</div>
+</footer>
+
+</body></html>
