@@ -1,5 +1,6 @@
 import { HttpError } from "../lib/http-error.js";
 import { createId } from "../lib/ids.js";
+import { env } from "../lib/env.js";
 import { actionsRepository } from "../repositories/actions.repository.js";
 import type {
   ActionRecord,
@@ -7,6 +8,7 @@ import type {
   FeedItem,
   RewardRecord,
   UserRecord,
+  VerificationCheckRecord,
   VerificationRecord,
 } from "../types/domain.js";
 import { hederaService } from "./hedera.service.js";
@@ -79,6 +81,15 @@ class ActionsService {
       reasonCodes: result.reasonCodes,
       verifiedAt: now,
     };
+    const verificationChecks: VerificationCheckRecord[] = result.checks.map((check) => ({
+      id: createId("chk"),
+      verificationId: verification.id,
+      checkName: check.name,
+      passed: check.passed,
+      score: check.score,
+      detail: check.detail,
+      createdAt: now,
+    }));
     const user = await this.getUser(action.userId);
     const verificationFeed: FeedItem = {
       id: createId("feed"),
@@ -153,6 +164,7 @@ class ActionsService {
       result.result,
       verification,
       verificationFeed,
+      verificationChecks,
       rewardDelta,
     );
 
@@ -187,6 +199,69 @@ class ActionsService {
 
   async getRecentVerifications() {
     return actionsRepository.getRecentVerifications();
+  }
+
+  async getProtocolAttestation(actionId: string) {
+    const status = await this.getActionStatus(actionId);
+    if (!status.action) {
+      throw new HttpError(404, `Action ${actionId} not found`);
+    }
+
+    const user = await this.getUser(status.action.userId);
+    const checks = await actionsRepository.getVerificationChecksByActionId(actionId);
+
+    return {
+      schemaVersion: "pos.v1",
+      generatedAt: new Date().toISOString(),
+      action: {
+        id: status.action.id,
+        type: status.action.actionType,
+        description: status.action.description,
+        quantity: status.action.quantity,
+        location: status.action.location,
+        submittedAt: status.action.submittedAt,
+        status: status.action.status,
+      },
+      contributor: {
+        id: user.id,
+        username: user.username,
+        walletAddress: user.walletAddress,
+      },
+      verification: status.verification
+        ? {
+            id: status.verification.id,
+            agentId: status.verification.agentId,
+            result: status.verification.result,
+            confidence: status.verification.confidence,
+            reasonCodes: status.verification.reasonCodes,
+            verifiedAt: status.verification.verifiedAt,
+            checks: checks.map((check) => ({
+              name: check.checkName,
+              passed: check.passed,
+              score: check.score,
+              detail: check.detail,
+            })),
+          }
+        : null,
+      proof: {
+        hashAlgorithm: "sha256",
+        proofHash: status.attestation?.proofHash ?? null,
+      },
+      onChain: {
+        network: env.HEDERA_NETWORK,
+        topicId: status.attestation?.topicId ?? null,
+        hcsMessageId: status.attestation?.messageId ?? null,
+        hcsTxId: status.attestation?.txId ?? null,
+        htsRewardTxId: status.reward?.txId ?? null,
+      },
+      reward: status.reward
+        ? {
+            amount: status.reward.tokenAmount,
+            txId: status.reward.txId,
+            createdAt: status.reward.createdAt,
+          }
+        : null,
+    };
   }
 
   private calculateReward(actionType: string, quantity: number) {

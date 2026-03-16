@@ -6,6 +6,7 @@ import type {
   FeedItem,
   RewardRecord,
   UserRecord,
+  VerificationCheckRecord,
   VerificationRecord,
 } from "../types/domain.js";
 
@@ -75,6 +76,18 @@ function mapFeedItem(row: Record<string, unknown>): FeedItem {
     id: String(row.id),
     type: String(row.type) as FeedItem["type"],
     message: String(row.message),
+    createdAt: new Date(String(row.created_at)).toISOString(),
+  };
+}
+
+function mapVerificationCheck(row: Record<string, unknown>): VerificationCheckRecord {
+  return {
+    id: String(row.id),
+    verificationId: String(row.verification_id),
+    checkName: String(row.check_name),
+    passed: Boolean(row.passed),
+    score: Number(row.score),
+    detail: String(row.detail),
     createdAt: new Date(String(row.created_at)).toISOString(),
   };
 }
@@ -202,6 +215,7 @@ export const actionsRepository = {
     status: ActionRecord["status"],
     verification: VerificationRecord,
     verificationFeed: FeedItem,
+    verificationChecks: VerificationCheckRecord[] = [],
     rewardDelta?: {
       attestation: AttestationRecord;
       reward: RewardRecord;
@@ -235,6 +249,25 @@ export const actionsRepository = {
         "INSERT INTO feed_items (id, type, message, created_at) VALUES ($1, $2, $3, $4)",
         [verificationFeed.id, verificationFeed.type, verificationFeed.message, verificationFeed.createdAt],
       );
+
+      for (const check of verificationChecks) {
+        await client.query(
+          `INSERT INTO verification_checks (id, verification_id, check_name, passed, score, detail, created_at)
+           VALUES ($1, $2, $3, $4, $5, $6, $7)
+           ON CONFLICT (id)
+           DO UPDATE SET check_name = EXCLUDED.check_name, passed = EXCLUDED.passed,
+             score = EXCLUDED.score, detail = EXCLUDED.detail, created_at = EXCLUDED.created_at`,
+          [
+            check.id,
+            check.verificationId,
+            check.checkName,
+            check.passed,
+            check.score,
+            check.detail,
+            check.createdAt,
+          ],
+        );
+      }
 
       if (rewardDelta) {
         await client.query(
@@ -350,5 +383,18 @@ export const actionsRepository = {
       actions: actionsResult.rows.map(mapAction),
       rewards: rewardsResult.rows.map(mapReward),
     };
+  },
+
+  async getVerificationChecksByActionId(actionId: string) {
+    const result = await query(
+      `SELECT vc.*
+       FROM verification_checks vc
+       INNER JOIN verifications v ON v.id = vc.verification_id
+       WHERE v.action_id = $1
+       ORDER BY vc.created_at ASC`,
+      [actionId],
+    );
+
+    return result.rows.map(mapVerificationCheck);
   },
 };

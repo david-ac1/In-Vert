@@ -32,6 +32,16 @@ export interface VerificationRecord {
   verifiedAt: string;
 }
 
+export interface VerificationCheckRecord {
+  id: string;
+  verificationId: string;
+  checkName: string;
+  passed: boolean;
+  score: number;
+  detail: string;
+  createdAt: string;
+}
+
 export interface AttestationRecord {
   id: string;
   actionId: string;
