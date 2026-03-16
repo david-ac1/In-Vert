@@ -1,6 +1,7 @@
 import { SiteFooter } from "@/components/site-footer";
 import { SiteHeader } from "@/components/site-header";
 import { ImpactDashboard } from "@/components/impact-dashboard";
+import { ProtocolStatsBar } from "@/components/protocol-stats-bar";
 
 export default function ImpactPage() {
   return (
@@ -12,9 +13,15 @@ export default function ImpactPage() {
             Impact Leaderboard and Feed
           </h1>
           <p className="mt-4 max-w-2xl text-zinc-600">
-            This route is scaffolded from the image-based design source and is
-            structured for rapid conversion to full visual parity.
+            Live protocol metrics from the In-Vert Proof-of-Sustainability network.
           </p>
+        </div>
+
+        <div className="mb-10">
+          <p className="mb-4 text-[10px] font-black uppercase tracking-[0.2em] text-zinc-500">
+            Protocol Stats — Live
+          </p>
+          <ProtocolStatsBar />
         </div>
 
         <ImpactDashboard />

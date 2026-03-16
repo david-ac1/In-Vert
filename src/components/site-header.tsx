@@ -25,6 +25,12 @@ export function SiteHeader() {
           >
             Nodes
           </Link>
+          <Link
+            href="/attestations"
+            className="text-sm font-black uppercase tracking-widest transition-colors hover:text-primary"
+          >
+            Receipts
+          </Link>
         </nav>
         <Link
           href="/submit"

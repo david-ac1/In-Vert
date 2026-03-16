@@ -385,6 +385,33 @@ export const actionsRepository = {
     };
   },
 
+  async getProtocolStats() {
+    const result = await query(`
+      SELECT
+        COUNT(DISTINCT a.id)::int                                                         AS total_actions,
+        COUNT(DISTINCT u.id)::int                                                         AS total_contributors,
+        COUNT(DISTINCT v.id) FILTER (WHERE v.result = 'approved')::int                   AS approved_actions,
+        COUNT(DISTINCT v.id) FILTER (WHERE v.result = 'rejected')::int                   AS rejected_actions,
+        COALESCE(SUM(r.token_amount), 0)::int                                            AS total_rewards_issued,
+        COUNT(DISTINCT att.id)::int                                                      AS total_attestations
+      FROM actions a
+      LEFT JOIN users u ON u.id = a.user_id
+      LEFT JOIN verifications v ON v.action_id = a.id
+      LEFT JOIN rewards r ON r.action_id = a.id
+      LEFT JOIN attestations att ON att.action_id = a.id
+    `);
+
+    const row = result.rows[0] as Record<string, unknown>;
+    return {
+      totalActions: Number(row.total_actions),
+      totalContributors: Number(row.total_contributors),
+      approvedActions: Number(row.approved_actions),
+      rejectedActions: Number(row.rejected_actions),
+      totalRewardsIssued: Number(row.total_rewards_issued),
+      totalAttestations: Number(row.total_attestations),
+    };
+  },
+
   async getVerificationChecksByActionId(actionId: string) {
     const result = await query(
       `SELECT vc.*

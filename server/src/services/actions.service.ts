@@ -201,6 +201,10 @@ class ActionsService {
     return actionsRepository.getRecentVerifications();
   }
 
+  async getProtocolStats() {
+    return actionsRepository.getProtocolStats();
+  }
+
   async getProtocolAttestation(actionId: string) {
     const status = await this.getActionStatus(actionId);
     if (!status.action) {

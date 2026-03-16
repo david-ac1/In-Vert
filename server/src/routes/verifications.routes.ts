@@ -11,6 +11,10 @@ verificationsRouter.get("/verifications", async (_request, response) => {
   });
 });
 
+verificationsRouter.get("/protocol/stats", async (_request, response) => {
+  return response.json(await actionsService.getProtocolStats());
+});
+
 verificationsRouter.get(
   "/protocol/attestations/:id",
   validateRequest(actionStatusParamsSchema),

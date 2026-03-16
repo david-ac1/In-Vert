@@ -344,6 +344,11 @@ export function SubmitActionForm() {
                   )
                 </p>
               ) : null}
+              {actionId ? (
+                <p>
+                  Receipt: <a className="underline" href={`/attestations?actionId=${encodeURIComponent(actionId)}`}>Open protocol receipt</a>
+                </p>
+              ) : null}
             </div>
           ) : null}
           {hasReward ? (

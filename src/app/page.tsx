@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { SiteFooter } from "@/components/site-footer";
 import { SiteHeader } from "@/components/site-header";
+import { ProtocolStatsBar } from "@/components/protocol-stats-bar";
 
 export default function Home() {
   return (
@@ -32,8 +33,21 @@ export default function Home() {
             >
               View Impact
             </Link>
+            <Link
+              href="/attestations"
+              className="border-2 border-black px-8 py-4 text-sm font-black uppercase tracking-[0.15em] transition hover:bg-zinc-100"
+            >
+              View Receipts
+            </Link>
           </div>
         </section>
+
+        <div className="mb-10">
+          <p className="mb-4 text-[10px] font-black uppercase tracking-[0.2em] text-zinc-500">
+            Protocol Stats — Live
+          </p>
+          <ProtocolStatsBar />
+        </div>
 
         <section className="grid gap-8 md:grid-cols-4">
           <div className="border-2 border-black p-6">

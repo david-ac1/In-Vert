@@ -46,6 +46,64 @@ export interface ActionStatusResponse {
   } | null;
 }
 
+export interface ProtocolStats {
+  totalActions: number;
+  totalContributors: number;
+  approvedActions: number;
+  rejectedActions: number;
+  totalRewardsIssued: number;
+  totalAttestations: number;
+}
+
+export interface ProtocolAttestationResponse {
+  schemaVersion: string;
+  generatedAt: string;
+  action: {
+    id: string;
+    type: string;
+    description: string;
+    quantity: number;
+    location: string;
+    submittedAt: string;
+    status: string;
+  };
+  contributor: {
+    id: string;
+    username: string;
+    walletAddress: string;
+  };
+  verification: {
+    id: string;
+    agentId: string;
+    result: string;
+    confidence: number;
+    reasonCodes: string[];
+    verifiedAt: string;
+    checks: Array<{
+      name: string;
+      passed: boolean;
+      score: number;
+      detail: string;
+    }>;
+  } | null;
+  proof: {
+    hashAlgorithm: string;
+    proofHash: string | null;
+  };
+  onChain: {
+    network: string;
+    topicId: string | null;
+    hcsMessageId: string | null;
+    hcsTxId: string | null;
+    htsRewardTxId: string | null;
+  };
+  reward: {
+    amount: number;
+    txId: string;
+    createdAt: string;
+  } | null;
+}
+
 async function readJson<T>(input: RequestInfo | URL, init?: RequestInit) {
   const response = await fetch(input, init);
   if (!response.ok) {
@@ -80,6 +138,10 @@ export const api = {
     }),
   getActionStatus: async (actionId: string) =>
     readJson<ActionStatusResponse>(`/api/actions/${actionId}/status`),
+  getProtocolAttestation: async (actionId: string) =>
+    readJson<ProtocolAttestationResponse>(`/api/protocol/attestations/${actionId}`),
+  getProtocolStats: async () =>
+    readJson<ProtocolStats>("/api/protocol/stats"),
   uploadEvidence: async (file: File) => {
     const form = new FormData();
     form.append("file", file);
