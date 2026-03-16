@@ -9,7 +9,8 @@
     "lint": "eslint",
     "server:dev": "npm --prefix server run dev",
     "server:build": "npm --prefix server run build",
-    "server:lint": "npm --prefix server run lint"
+    "server:lint": "npm --prefix server run lint",
+    "server:migrate": "npm --prefix server run migrate"
   },
   "dependencies": {
     "next": "16.1.6",

@@ -10,8 +10,8 @@ import { queueService } from "../services/queue.service.js";
 
 export const actionsRouter = Router();
 
-actionsRouter.post("/actions", validateRequest(createActionSchema), (request, response) => {
-  const action = actionsService.createAction(request.body);
+actionsRouter.post("/actions", validateRequest(createActionSchema), async (request, response) => {
+  const action = await actionsService.createAction(request.body);
   queueService.enqueue(action.id);
 
   return response.status(202).json({
@@ -29,8 +29,8 @@ actionsRouter.post("/verify", validateRequest(verifyActionSchema), async (reques
 actionsRouter.get(
   "/actions/:id/status",
   validateRequest(actionStatusParamsSchema),
-  (request, response) => {
-    const status = actionsService.getActionStatus(String(request.params.id));
+  async (request, response) => {
+    const status = await actionsService.getActionStatus(String(request.params.id));
     return response.json(status);
   },
 );

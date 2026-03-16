@@ -5,6 +5,6 @@ import { actionsService } from "../services/actions.service.js";
 
 export const usersRouter = Router();
 
-usersRouter.get("/users/:id", validateRequest(userParamsSchema), (request, response) => {
-  return response.json(actionsService.getUserProfile(String(request.params.id)));
+usersRouter.get("/users/:id", validateRequest(userParamsSchema), async (request, response) => {
+  return response.json(await actionsService.getUserProfile(String(request.params.id)));
 });

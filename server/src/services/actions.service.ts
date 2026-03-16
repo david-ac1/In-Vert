@@ -1,9 +1,10 @@
-import { store } from "../data/store.js";
 import { HttpError } from "../lib/http-error.js";
 import { createId } from "../lib/ids.js";
+import { actionsRepository } from "../repositories/actions.repository.js";
 import type {
   ActionRecord,
   AttestationRecord,
+  FeedItem,
   RewardRecord,
   UserRecord,
   VerificationRecord,
@@ -22,8 +23,8 @@ interface CreateActionInput {
 }
 
 class ActionsService {
-  createAction(input: CreateActionInput) {
-    const user = this.findOrCreateUser(input.walletAddress, input.username);
+  async createAction(input: CreateActionInput) {
+    const user = await this.findOrCreateUser(input.walletAddress, input.username);
     const now = new Date().toISOString();
     const action: ActionRecord = {
       id: createId("act"),
@@ -37,28 +38,20 @@ class ActionsService {
       submittedAt: now,
       updatedAt: now,
     };
-
-    store.actions.set(action.id, action);
-    user.actionsSubmitted += 1;
-    store.users.set(user.id, user);
-    store.feed.unshift({
+    const feedItem: FeedItem = {
       id: createId("feed"),
       type: "verification",
       message: `${user.username} submitted ${action.actionType}`,
       createdAt: now,
-    });
+    };
 
-    return action;
+    return actionsRepository.createQueuedAction(user, action, feedItem);
   }
 
   async processVerification(actionId: string) {
-    const action = this.getAction(actionId);
+    const action = await this.getAction(actionId);
     const result = verificationService.verify(action);
     const now = new Date().toISOString();
-
-    action.status = result.result;
-    action.updatedAt = now;
-    store.actions.set(action.id, action);
 
     const verification: VerificationRecord = {
       id: createId("ver"),
@@ -69,15 +62,23 @@ class ActionsService {
       reasonCodes: result.reasonCodes,
       verifiedAt: now,
     };
-    store.verifications.set(action.id, verification);
-
-    const user = this.getUser(action.userId);
-    store.feed.unshift({
+    const user = await this.getUser(action.userId);
+    const verificationFeed: FeedItem = {
       id: createId("feed"),
       type: "verification",
       message: `${user.username} action ${action.id} ${result.result}`,
       createdAt: now,
-    });
+    };
+
+    let rewardDelta:
+      | {
+          attestation: AttestationRecord;
+          reward: RewardRecord;
+          rewardFeed: FeedItem;
+          rewardAmount: number;
+          userId: string;
+        }
+      | undefined;
 
     if (result.result === "approved") {
       const proofHash = hederaService.createProofHash(
@@ -92,7 +93,11 @@ class ActionsService {
 
       const attestationResult = await hederaService.recordAttestation(action.id, proofHash);
       const rewardAmount = this.calculateReward(action.actionType, action.quantity);
-      const rewardResult = await hederaService.issueReward(action.id, user.id, rewardAmount);
+      const rewardResult = await hederaService.issueReward(
+        action.id,
+        user.walletAddress,
+        rewardAmount,
+      );
 
       const attestation: AttestationRecord = {
         id: createId("att"),
@@ -103,7 +108,6 @@ class ActionsService {
         proofHash,
         createdAt: now,
       };
-      store.attestations.set(action.id, attestation);
 
       const reward: RewardRecord = {
         id: createId("rew"),
@@ -113,57 +117,59 @@ class ActionsService {
         txId: rewardResult.txId,
         createdAt: now,
       };
-      store.rewards.set(action.id, reward);
-
-      user.totalRewards += rewardAmount;
-      store.users.set(user.id, user);
-      store.feed.unshift({
-        id: createId("feed"),
-        type: "reward",
-        message: `${user.username} earned ${rewardAmount} IVRT for ${action.actionType}`,
-        createdAt: now,
-      });
+      rewardDelta = {
+        attestation,
+        reward,
+        rewardFeed: {
+          id: createId("feed"),
+          type: "reward",
+          message: `${user.username} earned ${rewardAmount} IVRT for ${action.actionType}`,
+          createdAt: now,
+        },
+        rewardAmount,
+        userId: user.id,
+      };
     }
+
+    await actionsRepository.persistVerificationOutcome(
+      actionId,
+      result.result,
+      verification,
+      verificationFeed,
+      rewardDelta,
+    );
 
     return this.getActionStatus(actionId);
   }
 
-  getActionStatus(actionId: string) {
-    const action = this.getAction(actionId);
-    return {
-      action,
-      verification: store.verifications.get(actionId) ?? null,
-      attestation: store.attestations.get(actionId) ?? null,
-      reward: store.rewards.get(actionId) ?? null,
-    };
+  async getActionStatus(actionId: string) {
+    const status = await actionsRepository.getActionStatus(actionId);
+    if (!status.action) {
+      throw new HttpError(404, `Action ${actionId} not found`);
+    }
+
+    return status;
   }
 
-  getLeaderboard() {
-    return [...store.users.values()]
-      .sort((left, right) => right.totalRewards - left.totalRewards)
-      .map((user) => ({
-        id: user.id,
-        username: user.username,
-        walletAddress: user.walletAddress,
-        totalRewards: user.totalRewards,
-        actionsSubmitted: user.actionsSubmitted,
-      }));
+  async getLeaderboard() {
+    return actionsRepository.getLeaderboard();
   }
 
-  getFeed() {
-    return store.feed.slice(0, 25);
+  async getFeed() {
+    return actionsRepository.getFeed();
   }
 
-  getUserProfile(userId: string) {
-    const user = this.getUser(userId);
-    const actions = [...store.actions.values()].filter((action) => action.userId === userId);
-    const rewards = [...store.rewards.values()].filter((reward) => reward.userId === userId);
+  async getUserProfile(userId: string) {
+    const profile = await actionsRepository.getUserProfile(userId);
+    if (!profile.user) {
+      throw new HttpError(404, `User ${userId} not found`);
+    }
 
-    return {
-      user,
-      actions,
-      rewards,
-    };
+    return profile;
+  }
+
+  async getRecentVerifications() {
+    return actionsRepository.getRecentVerifications();
   }
 
   private calculateReward(actionType: string, quantity: number) {
@@ -177,10 +183,8 @@ class ActionsService {
     return quantity * 2;
   }
 
-  private findOrCreateUser(walletAddress: string, username: string) {
-    const existingUser = [...store.users.values()].find(
-      (user) => user.walletAddress === walletAddress,
-    );
+  private async findOrCreateUser(walletAddress: string, username: string) {
+    const existingUser = await actionsRepository.findUserByWalletAddress(walletAddress);
     if (existingUser) {
       return existingUser;
     }
@@ -194,12 +198,11 @@ class ActionsService {
       createdAt: new Date().toISOString(),
     };
 
-    store.users.set(user.id, user);
-    return user;
+    return actionsRepository.createUser(user);
   }
 
-  private getAction(actionId: string) {
-    const action = store.actions.get(actionId);
+  private async getAction(actionId: string) {
+    const action = await actionsRepository.findActionById(actionId);
     if (!action) {
       throw new HttpError(404, `Action ${actionId} not found`);
     }
@@ -207,8 +210,8 @@ class ActionsService {
     return action;
   }
 
-  private getUser(userId: string) {
-    const user = store.users.get(userId);
+  private async getUser(userId: string) {
+    const user = await actionsRepository.findUserById(userId);
     if (!user) {
       throw new HttpError(404, `User ${userId} not found`);
     }
