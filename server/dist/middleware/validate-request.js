@@ -7,7 +7,6 @@ export function validateRequest(schema) {
         });
         request.body = result.body;
         request.params = result.params;
-        request.query = result.query;
         next();
     };
 }

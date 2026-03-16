@@ -15,7 +15,6 @@ export function validateRequest(schema: ZodTypeAny) {
 
     request.body = result.body;
     request.params = result.params;
-    request.query = result.query;
     next();
   };
 }
