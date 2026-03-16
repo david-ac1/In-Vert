@@ -100,6 +100,44 @@ async function upsertUser(client: PoolClient, user: UserRecord) {
 }
 
 export const actionsRepository = {
+  async findRecentDuplicateAction(input: {
+    walletAddress: string;
+    actionType: string;
+    description: string;
+    quantity: number;
+    location: string;
+    photoUrl: string;
+    lookbackHours?: number;
+  }) {
+    const lookbackHours = input.lookbackHours ?? 24;
+    const result = await query(
+      `SELECT a.*
+       FROM actions a
+       INNER JOIN users u ON u.id = a.user_id
+       WHERE u.wallet_address = $1
+         AND lower(a.action_type) = lower($2)
+         AND lower(trim(a.description)) = lower(trim($3))
+         AND a.quantity = $4
+         AND lower(trim(a.location)) = lower(trim($5))
+         AND a.photo_url = $6
+         AND a.status IN ('queued', 'approved')
+         AND a.submitted_at >= NOW() - ($7::text || ' hours')::interval
+       ORDER BY a.submitted_at DESC
+       LIMIT 1`,
+      [
+        input.walletAddress,
+        input.actionType,
+        input.description,
+        input.quantity,
+        input.location,
+        input.photoUrl,
+        String(lookbackHours),
+      ],
+    );
+
+    return result.rowCount ? mapAction(result.rows[0]) : null;
+  },
+
   async findUserByWalletAddress(walletAddress: string) {
     const result = await query("SELECT * FROM users WHERE wallet_address = $1", [walletAddress]);
     return result.rowCount ? mapUser(result.rows[0]) : null;

@@ -27,6 +27,11 @@ export function SubmitActionForm() {
   const [status, setStatus] = useState<ActionStatusResponse | null>(null);
   const [actionId, setActionId] = useState<string | null>(null);
 
+  const hederaNetwork =
+    process.env.NEXT_PUBLIC_HEDERA_NETWORK === "mainnet" ? "mainnet" : "testnet";
+  const hasCompletedVerification = Boolean(status?.verification);
+  const hasReward = Boolean(status?.reward);
+
   function handleFileChange(event: React.ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
     if (!file) return;
@@ -70,6 +75,32 @@ export function SubmitActionForm() {
       await new Promise((resolve) => {
         window.setTimeout(resolve, 750);
       });
+    }
+  }
+
+  function getTxUrl(txId: string) {
+    return `https://hashscan.io/${hederaNetwork}/transaction/${encodeURIComponent(txId)}`;
+  }
+
+  function getTopicUrl(topicId: string) {
+    return `https://hashscan.io/${hederaNetwork}/topic/${encodeURIComponent(topicId)}`;
+  }
+
+  function resetFormForNextSubmission() {
+    setSelectedVector(vectors[0]);
+    setQuantity(1);
+    setDescription("");
+    setLocation("Lagos");
+    setEvidenceMode("url");
+    setPhotoUrl("");
+    setUploadedFile(null);
+    setUploadPreview(null);
+    setUploadProgress("idle");
+    setError(null);
+    setStatus(null);
+    setActionId(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
     }
   }
 
@@ -248,11 +279,20 @@ export function SubmitActionForm() {
 
           <div className="space-y-6">
             <button
-              disabled={submitting}
+              disabled={submitting || hasCompletedVerification}
               className="flex w-full items-center justify-center gap-4 border-2 border-black bg-primary py-5 text-xl font-black uppercase tracking-widest text-white shadow-[6px_6px_0_0_#000] transition-all hover:bg-primary-dark disabled:cursor-not-allowed disabled:opacity-70"
             >
               {submitting ? "Processing Submission" : "Transmit Submission"}
             </button>
+            {hasCompletedVerification ? (
+              <button
+                type="button"
+                onClick={resetFormForNextSubmission}
+                className="w-full border-2 border-black bg-white py-3 text-sm font-black uppercase tracking-widest text-black transition-all hover:bg-zinc-50"
+              >
+                Submit Another Action
+              </button>
+            ) : null}
             <div className="flex flex-col items-center justify-between gap-4 px-1 md:flex-row">
               <div className="flex items-center gap-4 text-[10px] font-black uppercase tracking-widest text-zinc-400">
                 <div className="border border-zinc-200 px-3 py-2">
@@ -287,8 +327,28 @@ export function SubmitActionForm() {
             <div className="mt-4 space-y-2 text-sm font-medium">
               <p>Status: <span className="font-black uppercase">{status.action.status}</span></p>
               {status.verification ? <p>Verification: {status.verification.result} ({status.verification.confidence}%)</p> : <p>Verification: pending</p>}
-              {status.attestation ? <p>HCS Tx: {status.attestation.txId}</p> : null}
-              {status.reward ? <p>HTS Reward: {status.reward.tokenAmount} IVRT ({status.reward.txId})</p> : null}
+              {status.attestation ? (
+                <p>
+                  HCS Tx: <a className="underline" href={getTxUrl(status.attestation.txId)} target="_blank" rel="noreferrer">{status.attestation.txId}</a>
+                </p>
+              ) : null}
+              {status.attestation ? (
+                <p>
+                  Topic: <a className="underline" href={getTopicUrl(status.attestation.topicId)} target="_blank" rel="noreferrer">{status.attestation.topicId}</a>
+                </p>
+              ) : null}
+              {status.reward ? (
+                <p>
+                  HTS Reward: {status.reward.tokenAmount} IVRT (
+                  <a className="underline" href={getTxUrl(status.reward.txId)} target="_blank" rel="noreferrer">{status.reward.txId}</a>
+                  )
+                </p>
+              ) : null}
+            </div>
+          ) : null}
+          {hasReward ? (
+            <div className="mt-5 border-2 border-emerald-700 bg-emerald-50 p-4 text-sm font-bold text-emerald-900">
+              Reward delivered successfully. This action is completed and cannot be re-submitted in the duplicate-protection window.
             </div>
           ) : null}
         </section>

@@ -24,6 +24,23 @@ interface CreateActionInput {
 
 class ActionsService {
   async createAction(input: CreateActionInput) {
+    const duplicate = await actionsRepository.findRecentDuplicateAction({
+      walletAddress: input.walletAddress,
+      actionType: input.actionType,
+      description: input.description,
+      quantity: input.quantity,
+      location: input.location,
+      photoUrl: input.photoUrl,
+      lookbackHours: 24,
+    });
+
+    if (duplicate) {
+      throw new HttpError(409, "Duplicate submission detected. This report was already submitted recently.", {
+        existingActionId: duplicate.id,
+        cooldownHours: 24,
+      });
+    }
+
     const user = await this.findOrCreateUser(input.walletAddress, input.username);
     const now = new Date().toISOString();
     const action: ActionRecord = {
