@@ -159,7 +159,7 @@ Day 7:
 - For image-only screens, scaffold route skeletons and map section blocks until exact UI extraction is completed.
 
 ## 11) Immediate Next Engineering Actions
-1. Scaffold `invert-frontend/` with Next.js App Router + Tailwind + TypeScript.
+1. Use root-level Next.js App Router + Tailwind + TypeScript scaffold already in place.
 2. Implement shared design tokens and shell layout from coded design.
 3. Build `/submit` page parity from `invert-screens/submit_eco_action_form/code.html`.
 4. Add `/`, `/verification`, and `/impact` route skeletons aligned to design folders.
