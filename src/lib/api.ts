@@ -96,6 +96,8 @@ export interface ProtocolAttestationResponse {
     hcsMessageId: string | null;
     hcsTxId: string | null;
     htsRewardTxId: string | null;
+    hscsContractId: string | null;
+    hscsRegistrationTxId: string | null;
   };
   reward: {
     amount: number;

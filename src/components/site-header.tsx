@@ -36,7 +36,7 @@ export function SiteHeader() {
           href="/submit"
           className="border-2 border-black bg-black px-5 py-2 text-xs font-black uppercase tracking-widest text-white transition-colors hover:bg-zinc-800"
         >
-          Connect Wallet
+          Submit Action
         </Link>
       </div>
     </header>

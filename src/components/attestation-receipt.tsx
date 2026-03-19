@@ -133,6 +133,16 @@ export function AttestationReceipt({ initialActionId = "" }: { initialActionId?:
                   HTS Tx: <a className="underline" href={`${hashscanBase}/transaction/${encodeURIComponent(receipt.onChain.htsRewardTxId)}`} target="_blank" rel="noreferrer">{receipt.onChain.htsRewardTxId}</a>
                 </p>
               ) : null}
+              {receipt.onChain.hscsContractId ? (
+                <p>
+                  HSCS Contract: <a className="underline" href={`${hashscanBase}/contract/${encodeURIComponent(receipt.onChain.hscsContractId)}`} target="_blank" rel="noreferrer">{receipt.onChain.hscsContractId}</a>
+                </p>
+              ) : null}
+              {receipt.onChain.hscsRegistrationTxId ? (
+                <p>
+                  Registry Tx: <a className="underline" href={`${hashscanBase}/transaction/${encodeURIComponent(receipt.onChain.hscsRegistrationTxId)}`} target="_blank" rel="noreferrer">{receipt.onChain.hscsRegistrationTxId}</a>
+                </p>
+              ) : null}
             </div>
           </div>
 

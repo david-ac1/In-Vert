@@ -211,6 +211,9 @@ export function SubmitActionForm() {
               onChange={(event) => setWalletAddress(event.target.value)}
               required
             />
+            <p className="md:col-span-2 text-xs font-bold uppercase tracking-wide text-zinc-500">
+              Wallet integration coming next. For now, enter your Hedera account ID manually.
+            </p>
           </div>
 
           <div className="mb-14">
