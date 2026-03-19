@@ -42,6 +42,22 @@ export interface VerificationCheckRecord {
   createdAt: string;
 }
 
+export interface ActionMediaSignalsRecord {
+  actionId: string;
+  sourceKind: "uploaded_file" | "external_url" | "unknown";
+  imageHash: string | null;
+  stockRiskScore: number;
+  stockSignals: string[];
+  exifLatitude: number | null;
+  exifLongitude: number | null;
+  exifCapturedAt: string | null;
+  claimedLatitude: number | null;
+  claimedLongitude: number | null;
+  locationDistanceKm: number | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface AttestationRecord {
   id: string;
   actionId: string;

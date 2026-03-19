@@ -29,6 +29,22 @@ const rawEnvSchema = z.object({
     AWS_REGION: z.string().optional(),
     AWS_ACCESS_KEY_ID: z.string().optional(),
     AWS_SECRET_ACCESS_KEY: z.string().optional(),
+    GEOCODE_BASE_URL: z.string().default("https://nominatim.openstreetmap.org/search"),
+    GEOCODE_TIMEOUT_MS: z.coerce.number().default(2500),
+    LOCATION_MATCH_MAX_KM: z.coerce.number().default(50),
+    STOCK_RISK_REJECT_THRESHOLD: z.coerce.number().default(70),
+    ENABLE_LOCATION_MATCH_CHECK: z
+        .string()
+        .optional()
+        .transform((value) => value !== "false"),
+    ENABLE_STOCK_PHOTO_CHECK: z
+        .string()
+        .optional()
+        .transform((value) => value !== "false"),
+    ENABLE_IMAGE_HASH_DUPLICATE_CHECK: z
+        .string()
+        .optional()
+        .transform((value) => value !== "false"),
     HEDERA_TOKEN_NAME: z.string().default("InVert Reward Token"),
     HEDERA_TOKEN_SYMBOL: z.string().default("IVRT"),
     HEDERA_TOKEN_DECIMALS: z.coerce.number().default(0),

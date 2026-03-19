@@ -2,6 +2,7 @@ import type { PoolClient } from "pg";
 import { query, withTransaction } from "../lib/db.js";
 import type {
   ActionRecord,
+  ActionMediaSignalsRecord,
   AttestationRecord,
   FeedItem,
   RewardRecord,
@@ -18,6 +19,24 @@ function mapUser(row: Record<string, unknown>): UserRecord {
     totalRewards: Number(row.total_rewards),
     actionsSubmitted: Number(row.actions_submitted),
     createdAt: new Date(String(row.created_at)).toISOString(),
+  };
+}
+
+function mapActionMediaSignals(row: Record<string, unknown>): ActionMediaSignalsRecord {
+  return {
+    actionId: String(row.action_id),
+    sourceKind: String(row.source_kind) as ActionMediaSignalsRecord["sourceKind"],
+    imageHash: row.image_hash ? String(row.image_hash) : null,
+    stockRiskScore: Number(row.stock_risk_score),
+    stockSignals: Array.isArray(row.stock_signals) ? (row.stock_signals as string[]) : [],
+    exifLatitude: row.exif_latitude === null ? null : Number(row.exif_latitude),
+    exifLongitude: row.exif_longitude === null ? null : Number(row.exif_longitude),
+    exifCapturedAt: row.exif_captured_at ? new Date(String(row.exif_captured_at)).toISOString() : null,
+    claimedLatitude: row.claimed_latitude === null ? null : Number(row.claimed_latitude),
+    claimedLongitude: row.claimed_longitude === null ? null : Number(row.claimed_longitude),
+    locationDistanceKm: row.location_distance_km === null ? null : Number(row.location_distance_km),
+    createdAt: new Date(String(row.created_at)).toISOString(),
+    updatedAt: new Date(String(row.updated_at)).toISOString(),
   };
 }
 
@@ -209,6 +228,73 @@ export const actionsRepository = {
   async findActionById(actionId: string) {
     const result = await query("SELECT * FROM actions WHERE id = $1", [actionId]);
     return result.rowCount ? mapAction(result.rows[0]) : null;
+  },
+
+  async findDuplicateByImageHash(input: {
+    imageHash: string;
+    actionId: string;
+    userId: string;
+  }) {
+    const result = await query(
+      `SELECT a.*
+       FROM action_media_signals ams
+       INNER JOIN actions a ON a.id = ams.action_id
+       WHERE ams.image_hash = $1
+         AND ams.action_id <> $2
+         AND a.user_id <> $3
+         AND a.status IN ('queued', 'approved')
+       ORDER BY a.submitted_at DESC
+       LIMIT 1`,
+      [input.imageHash, input.actionId, input.userId],
+    );
+
+    return result.rowCount ? mapAction(result.rows[0]) : null;
+  },
+
+  async upsertActionMediaSignals(signals: Omit<ActionMediaSignalsRecord, "createdAt" | "updatedAt">) {
+    const result = await query(
+      `INSERT INTO action_media_signals (
+         action_id, source_kind, image_hash, stock_risk_score, stock_signals,
+         exif_latitude, exif_longitude, exif_captured_at,
+         claimed_latitude, claimed_longitude, location_distance_km,
+         created_at, updated_at
+       )
+       VALUES ($1, $2, $3, $4, $5::jsonb, $6, $7, $8, $9, $10, $11, NOW(), NOW())
+       ON CONFLICT (action_id)
+       DO UPDATE SET
+         source_kind = EXCLUDED.source_kind,
+         image_hash = EXCLUDED.image_hash,
+         stock_risk_score = EXCLUDED.stock_risk_score,
+         stock_signals = EXCLUDED.stock_signals,
+         exif_latitude = EXCLUDED.exif_latitude,
+         exif_longitude = EXCLUDED.exif_longitude,
+         exif_captured_at = EXCLUDED.exif_captured_at,
+         claimed_latitude = EXCLUDED.claimed_latitude,
+         claimed_longitude = EXCLUDED.claimed_longitude,
+         location_distance_km = EXCLUDED.location_distance_km,
+         updated_at = NOW()
+       RETURNING *`,
+      [
+        signals.actionId,
+        signals.sourceKind,
+        signals.imageHash,
+        signals.stockRiskScore,
+        JSON.stringify(signals.stockSignals),
+        signals.exifLatitude,
+        signals.exifLongitude,
+        signals.exifCapturedAt,
+        signals.claimedLatitude,
+        signals.claimedLongitude,
+        signals.locationDistanceKm,
+      ],
+    );
+
+    return mapActionMediaSignals(result.rows[0]);
+  },
+
+  async getActionMediaSignalsByActionId(actionId: string) {
+    const result = await query("SELECT * FROM action_media_signals WHERE action_id = $1", [actionId]);
+    return result.rowCount ? mapActionMediaSignals(result.rows[0]) : null;
   },
 
   async persistVerificationOutcome(

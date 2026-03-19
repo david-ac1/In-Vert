@@ -69,8 +69,10 @@ class ActionsService {
 
   async processVerification(actionId: string) {
     const action = await this.getAction(actionId);
-    const result = verificationService.verify(action);
+    const result = await verificationService.verify(action);
     const now = new Date().toISOString();
+
+    await actionsRepository.upsertActionMediaSignals(result.mediaSignals);
 
     const verification: VerificationRecord = {
       id: createId("ver"),
@@ -215,6 +217,7 @@ class ActionsService {
 
     const user = await this.getUser(status.action.userId);
     const checks = await actionsRepository.getVerificationChecksByActionId(actionId);
+    const mediaSignals = await actionsRepository.getActionMediaSignalsByActionId(actionId);
 
     return {
       schemaVersion: "pos.v1",
@@ -253,6 +256,24 @@ class ActionsService {
         hashAlgorithm: "sha256",
         proofHash: status.attestation?.proofHash ?? null,
       },
+      evidenceAnalysis: mediaSignals
+        ? {
+            sourceKind: mediaSignals.sourceKind,
+            imageHash: mediaSignals.imageHash,
+            stockRiskScore: mediaSignals.stockRiskScore,
+            stockSignals: mediaSignals.stockSignals,
+            exif: {
+              latitude: mediaSignals.exifLatitude,
+              longitude: mediaSignals.exifLongitude,
+              capturedAt: mediaSignals.exifCapturedAt,
+            },
+            claimedLocation: {
+              latitude: mediaSignals.claimedLatitude,
+              longitude: mediaSignals.claimedLongitude,
+            },
+            locationDistanceKm: mediaSignals.locationDistanceKm,
+          }
+        : null,
       onChain: {
         network: env.HEDERA_NETWORK,
         topicId: status.attestation?.topicId ?? null,
