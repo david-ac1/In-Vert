@@ -120,6 +120,7 @@ class ActionsService {
       );
 
       const attestationResult = await hederaService.recordAttestation(action.id, proofHash);
+      const contractResult = await hederaService.registerAttestationOnChain(action.id, proofHash);
       const rewardAmount = this.calculateReward(action.actionType, action.quantity);
       const rewardResult = await hederaService.issueReward(
         action.id,
@@ -134,6 +135,7 @@ class ActionsService {
         messageId: attestationResult.messageId,
         txId: attestationResult.txId,
         proofHash,
+        contractTxId: contractResult?.txId,
         createdAt: now,
       };
 
@@ -257,6 +259,8 @@ class ActionsService {
         hcsMessageId: status.attestation?.messageId ?? null,
         hcsTxId: status.attestation?.txId ?? null,
         htsRewardTxId: status.reward?.txId ?? null,
+        hscsContractId: env.HEDERA_CONTRACT_ID ?? null,
+        hscsRegistrationTxId: status.attestation?.contractTxId ?? null,
       },
       reward: status.reward
         ? {

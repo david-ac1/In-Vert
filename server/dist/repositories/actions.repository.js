@@ -42,6 +42,7 @@ function mapAttestation(row) {
         messageId: String(row.message_id),
         txId: String(row.tx_id),
         proofHash: String(row.proof_hash),
+        contractTxId: row.contract_tx_id ? String(row.contract_tx_id) : undefined,
         createdAt: new Date(String(row.created_at)).toISOString(),
     };
 }
@@ -63,6 +64,17 @@ function mapFeedItem(row) {
         createdAt: new Date(String(row.created_at)).toISOString(),
     };
 }
+function mapVerificationCheck(row) {
+    return {
+        id: String(row.id),
+        verificationId: String(row.verification_id),
+        checkName: String(row.check_name),
+        passed: Boolean(row.passed),
+        score: Number(row.score),
+        detail: String(row.detail),
+        createdAt: new Date(String(row.created_at)).toISOString(),
+    };
+}
 async function upsertUser(client, user) {
     const result = await client.query(`INSERT INTO users (id, wallet_address, username, total_rewards, actions_submitted, created_at)
      VALUES ($1, $2, $3, $4, $5, $6)
@@ -79,6 +91,31 @@ async function upsertUser(client, user) {
     return mapUser(result.rows[0]);
 }
 export const actionsRepository = {
+    async findRecentDuplicateAction(input) {
+        const lookbackHours = input.lookbackHours ?? 24;
+        const result = await query(`SELECT a.*
+       FROM actions a
+       INNER JOIN users u ON u.id = a.user_id
+       WHERE u.wallet_address = $1
+         AND lower(a.action_type) = lower($2)
+         AND lower(trim(a.description)) = lower(trim($3))
+         AND a.quantity = $4
+         AND lower(trim(a.location)) = lower(trim($5))
+         AND a.photo_url = $6
+         AND a.status IN ('queued', 'approved')
+         AND a.submitted_at >= NOW() - ($7::text || ' hours')::interval
+       ORDER BY a.submitted_at DESC
+       LIMIT 1`, [
+            input.walletAddress,
+            input.actionType,
+            input.description,
+            input.quantity,
+            input.location,
+            input.photoUrl,
+            String(lookbackHours),
+        ]);
+        return result.rowCount ? mapAction(result.rows[0]) : null;
+    },
     async findUserByWalletAddress(walletAddress) {
         const result = await query("SELECT * FROM users WHERE wallet_address = $1", [walletAddress]);
         return result.rowCount ? mapUser(result.rows[0]) : null;
@@ -119,7 +156,7 @@ export const actionsRepository = {
         const result = await query("SELECT * FROM actions WHERE id = $1", [actionId]);
         return result.rowCount ? mapAction(result.rows[0]) : null;
     },
-    async persistVerificationOutcome(actionId, status, verification, verificationFeed, rewardDelta) {
+    async persistVerificationOutcome(actionId, status, verification, verificationFeed, verificationChecks = [], rewardDelta) {
         await withTransaction(async (client) => {
             await client.query("UPDATE actions SET status = $2, updated_at = NOW() WHERE id = $1", [actionId, status]);
             await client.query(`INSERT INTO verifications (id, action_id, agent_id, result, confidence, reason_codes, verified_at)
@@ -136,18 +173,34 @@ export const actionsRepository = {
                 verification.verifiedAt,
             ]);
             await client.query("INSERT INTO feed_items (id, type, message, created_at) VALUES ($1, $2, $3, $4)", [verificationFeed.id, verificationFeed.type, verificationFeed.message, verificationFeed.createdAt]);
-            if (rewardDelta) {
-                await client.query(`INSERT INTO attestations (id, action_id, topic_id, message_id, tx_id, proof_hash, created_at)
+            for (const check of verificationChecks) {
+                await client.query(`INSERT INTO verification_checks (id, verification_id, check_name, passed, score, detail, created_at)
            VALUES ($1, $2, $3, $4, $5, $6, $7)
+           ON CONFLICT (id)
+           DO UPDATE SET check_name = EXCLUDED.check_name, passed = EXCLUDED.passed,
+             score = EXCLUDED.score, detail = EXCLUDED.detail, created_at = EXCLUDED.created_at`, [
+                    check.id,
+                    check.verificationId,
+                    check.checkName,
+                    check.passed,
+                    check.score,
+                    check.detail,
+                    check.createdAt,
+                ]);
+            }
+            if (rewardDelta) {
+                await client.query(`INSERT INTO attestations (id, action_id, topic_id, message_id, tx_id, proof_hash, contract_tx_id, created_at)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
            ON CONFLICT (action_id)
            DO UPDATE SET topic_id = EXCLUDED.topic_id, message_id = EXCLUDED.message_id, tx_id = EXCLUDED.tx_id,
-             proof_hash = EXCLUDED.proof_hash, created_at = EXCLUDED.created_at`, [
+             proof_hash = EXCLUDED.proof_hash, contract_tx_id = EXCLUDED.contract_tx_id, created_at = EXCLUDED.created_at`, [
                     rewardDelta.attestation.id,
                     rewardDelta.attestation.actionId,
                     rewardDelta.attestation.topicId,
                     rewardDelta.attestation.messageId,
                     rewardDelta.attestation.txId,
                     rewardDelta.attestation.proofHash,
+                    rewardDelta.attestation.contractTxId ?? null,
                     rewardDelta.attestation.createdAt,
                 ]);
                 await client.query(`INSERT INTO rewards (id, user_id, action_id, token_amount, tx_id, created_at)
@@ -221,5 +274,38 @@ export const actionsRepository = {
             actions: actionsResult.rows.map(mapAction),
             rewards: rewardsResult.rows.map(mapReward),
         };
+    },
+    async getProtocolStats() {
+        const result = await query(`
+      SELECT
+        COUNT(DISTINCT a.id)::int                                                         AS total_actions,
+        COUNT(DISTINCT u.id)::int                                                         AS total_contributors,
+        COUNT(DISTINCT v.id) FILTER (WHERE v.result = 'approved')::int                   AS approved_actions,
+        COUNT(DISTINCT v.id) FILTER (WHERE v.result = 'rejected')::int                   AS rejected_actions,
+        COALESCE(SUM(r.token_amount), 0)::int                                            AS total_rewards_issued,
+        COUNT(DISTINCT att.id)::int                                                      AS total_attestations
+      FROM actions a
+      LEFT JOIN users u ON u.id = a.user_id
+      LEFT JOIN verifications v ON v.action_id = a.id
+      LEFT JOIN rewards r ON r.action_id = a.id
+      LEFT JOIN attestations att ON att.action_id = a.id
+    `);
+        const row = result.rows[0];
+        return {
+            totalActions: Number(row.total_actions),
+            totalContributors: Number(row.total_contributors),
+            approvedActions: Number(row.approved_actions),
+            rejectedActions: Number(row.rejected_actions),
+            totalRewardsIssued: Number(row.total_rewards_issued),
+            totalAttestations: Number(row.total_attestations),
+        };
+    },
+    async getVerificationChecksByActionId(actionId) {
+        const result = await query(`SELECT vc.*
+       FROM verification_checks vc
+       INNER JOIN verifications v ON v.id = vc.verification_id
+       WHERE v.action_id = $1
+       ORDER BY vc.created_at ASC`, [actionId]);
+        return result.rows.map(mapVerificationCheck);
     },
 };

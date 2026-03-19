@@ -56,6 +56,7 @@ function mapAttestation(row: Record<string, unknown>): AttestationRecord {
     messageId: String(row.message_id),
     txId: String(row.tx_id),
     proofHash: String(row.proof_hash),
+    contractTxId: row.contract_tx_id ? String(row.contract_tx_id) : undefined,
     createdAt: new Date(String(row.created_at)).toISOString(),
   };
 }
@@ -271,11 +272,11 @@ export const actionsRepository = {
 
       if (rewardDelta) {
         await client.query(
-          `INSERT INTO attestations (id, action_id, topic_id, message_id, tx_id, proof_hash, created_at)
-           VALUES ($1, $2, $3, $4, $5, $6, $7)
+          `INSERT INTO attestations (id, action_id, topic_id, message_id, tx_id, proof_hash, contract_tx_id, created_at)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
            ON CONFLICT (action_id)
            DO UPDATE SET topic_id = EXCLUDED.topic_id, message_id = EXCLUDED.message_id, tx_id = EXCLUDED.tx_id,
-             proof_hash = EXCLUDED.proof_hash, created_at = EXCLUDED.created_at`,
+             proof_hash = EXCLUDED.proof_hash, contract_tx_id = EXCLUDED.contract_tx_id, created_at = EXCLUDED.created_at`,
           [
             rewardDelta.attestation.id,
             rewardDelta.attestation.actionId,
@@ -283,6 +284,7 @@ export const actionsRepository = {
             rewardDelta.attestation.messageId,
             rewardDelta.attestation.txId,
             rewardDelta.attestation.proofHash,
+            rewardDelta.attestation.contractTxId ?? null,
             rewardDelta.attestation.createdAt,
           ],
         );

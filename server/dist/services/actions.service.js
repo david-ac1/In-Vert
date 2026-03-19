@@ -1,10 +1,26 @@
 import { HttpError } from "../lib/http-error.js";
 import { createId } from "../lib/ids.js";
+import { env } from "../lib/env.js";
 import { actionsRepository } from "../repositories/actions.repository.js";
 import { hederaService } from "./hedera.service.js";
 import { verificationService } from "./verification.service.js";
 class ActionsService {
     async createAction(input) {
+        const duplicate = await actionsRepository.findRecentDuplicateAction({
+            walletAddress: input.walletAddress,
+            actionType: input.actionType,
+            description: input.description,
+            quantity: input.quantity,
+            location: input.location,
+            photoUrl: input.photoUrl,
+            lookbackHours: 24,
+        });
+        if (duplicate) {
+            throw new HttpError(409, "Duplicate submission detected. This report was already submitted recently.", {
+                existingActionId: duplicate.id,
+                cooldownHours: 24,
+            });
+        }
         const user = await this.findOrCreateUser(input.walletAddress, input.username);
         const now = new Date().toISOString();
         const action = {
@@ -40,6 +56,15 @@ class ActionsService {
             reasonCodes: result.reasonCodes,
             verifiedAt: now,
         };
+        const verificationChecks = result.checks.map((check) => ({
+            id: createId("chk"),
+            verificationId: verification.id,
+            checkName: check.name,
+            passed: check.passed,
+            score: check.score,
+            detail: check.detail,
+            createdAt: now,
+        }));
         const user = await this.getUser(action.userId);
         const verificationFeed = {
             id: createId("feed"),
@@ -57,6 +82,7 @@ class ActionsService {
                 verifiedAt: now,
             }));
             const attestationResult = await hederaService.recordAttestation(action.id, proofHash);
+            const contractResult = await hederaService.registerAttestationOnChain(action.id, proofHash);
             const rewardAmount = this.calculateReward(action.actionType, action.quantity);
             const rewardResult = await hederaService.issueReward(action.id, user.walletAddress, rewardAmount);
             const attestation = {
@@ -66,6 +92,7 @@ class ActionsService {
                 messageId: attestationResult.messageId,
                 txId: attestationResult.txId,
                 proofHash,
+                contractTxId: contractResult?.txId,
                 createdAt: now,
             };
             const reward = {
@@ -89,7 +116,7 @@ class ActionsService {
                 userId: user.id,
             };
         }
-        await actionsRepository.persistVerificationOutcome(actionId, result.result, verification, verificationFeed, rewardDelta);
+        await actionsRepository.persistVerificationOutcome(actionId, result.result, verification, verificationFeed, verificationChecks, rewardDelta);
         return this.getActionStatus(actionId);
     }
     async getActionStatus(actionId) {
@@ -114,6 +141,71 @@ class ActionsService {
     }
     async getRecentVerifications() {
         return actionsRepository.getRecentVerifications();
+    }
+    async getProtocolStats() {
+        return actionsRepository.getProtocolStats();
+    }
+    async getProtocolAttestation(actionId) {
+        const status = await this.getActionStatus(actionId);
+        if (!status.action) {
+            throw new HttpError(404, `Action ${actionId} not found`);
+        }
+        const user = await this.getUser(status.action.userId);
+        const checks = await actionsRepository.getVerificationChecksByActionId(actionId);
+        return {
+            schemaVersion: "pos.v1",
+            generatedAt: new Date().toISOString(),
+            action: {
+                id: status.action.id,
+                type: status.action.actionType,
+                description: status.action.description,
+                quantity: status.action.quantity,
+                location: status.action.location,
+                submittedAt: status.action.submittedAt,
+                status: status.action.status,
+            },
+            contributor: {
+                id: user.id,
+                username: user.username,
+                walletAddress: user.walletAddress,
+            },
+            verification: status.verification
+                ? {
+                    id: status.verification.id,
+                    agentId: status.verification.agentId,
+                    result: status.verification.result,
+                    confidence: status.verification.confidence,
+                    reasonCodes: status.verification.reasonCodes,
+                    verifiedAt: status.verification.verifiedAt,
+                    checks: checks.map((check) => ({
+                        name: check.checkName,
+                        passed: check.passed,
+                        score: check.score,
+                        detail: check.detail,
+                    })),
+                }
+                : null,
+            proof: {
+                hashAlgorithm: "sha256",
+                proofHash: status.attestation?.proofHash ?? null,
+            },
+            onChain: {
+                network: env.HEDERA_NETWORK,
+                topicId: status.attestation?.topicId ?? null,
+                hcsMessageId: status.attestation?.messageId ?? null,
+                hcsTxId: status.attestation?.txId ?? null,
+                htsRewardTxId: status.reward?.txId ?? null,
+                hscsContractId: env.HEDERA_CONTRACT_ID ?? null,
+                hscsRegistrationTxId: status.attestation?.contractTxId ?? null,
+            },
+            reward: status.reward
+                ? {
+                    amount: status.reward.tokenAmount,
+                    txId: status.reward.txId,
+                    createdAt: status.reward.createdAt,
+                }
+                : null,
+        };
     }
     calculateReward(actionType, quantity) {
         const normalizedType = actionType.toLowerCase();

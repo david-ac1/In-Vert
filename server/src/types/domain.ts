@@ -49,6 +49,8 @@ export interface AttestationRecord {
   messageId: string;
   txId: string;
   proofHash: string;
+  /** HSCS SustainabilityRegistry contract transaction ID (set after deploy) */
+  contractTxId?: string;
   createdAt: string;
 }
 

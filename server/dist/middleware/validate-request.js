@@ -1,7 +1,7 @@
 export function validateRequest(schema) {
     return (request, _response, next) => {
         const result = schema.parse({
-            body: request.body,
+            body: request.body ?? {},
             params: request.params,
             query: request.query,
         });

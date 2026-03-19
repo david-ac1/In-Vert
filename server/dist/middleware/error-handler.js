@@ -3,10 +3,14 @@ import { HttpError } from "../lib/http-error.js";
 import { logger } from "../lib/logger.js";
 export function errorHandler(error, _request, response, _next) {
     if (error instanceof ZodError) {
+        const flat = error.flatten();
+        const fieldMessages = Object.entries(flat.fieldErrors)
+            .map(([field, msgs]) => `${field}: ${msgs.join(", ")}`)
+            .join("; ");
         return response.status(400).json({
             error: "ValidationError",
-            message: "Request validation failed",
-            details: error.flatten(),
+            message: fieldMessages ? `Validation failed — ${fieldMessages}` : "Request validation failed",
+            details: flat,
         });
     }
     if (error instanceof HttpError) {
