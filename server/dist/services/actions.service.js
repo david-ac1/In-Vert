@@ -45,7 +45,11 @@ class ActionsService {
         return actionsRepository.createQueuedAction(user, action, feedItem);
     }
     async processVerification(actionId) {
-        const action = await this.getAction(actionId);
+        const claimedAction = await actionsRepository.claimQueuedAction(actionId);
+        if (!claimedAction) {
+            return this.getActionStatus(actionId);
+        }
+        const action = claimedAction;
         try {
             const result = await verificationService.verify(action);
             const now = new Date().toISOString();
@@ -84,40 +88,58 @@ class ActionsService {
                     quantity: action.quantity,
                     verifiedAt: now,
                 }));
-                const attestationResult = await hederaService.recordAttestation(action.id, proofHash);
-                const contractResult = await hederaService.registerAttestationOnChain(action.id, proofHash);
-                const rewardAmount = this.calculateReward(action.actionType, action.quantity);
-                const rewardResult = await hederaService.issueReward(action.id, user.walletAddress, rewardAmount);
-                const attestation = {
-                    id: createId("att"),
-                    actionId: action.id,
-                    topicId: attestationResult.topicId,
-                    messageId: attestationResult.messageId,
-                    txId: attestationResult.txId,
-                    proofHash,
-                    contractTxId: contractResult?.txId,
-                    createdAt: now,
-                };
-                const reward = {
-                    id: createId("rew"),
-                    actionId: action.id,
-                    userId: user.id,
-                    tokenAmount: rewardResult.tokenAmount,
-                    txId: rewardResult.txId,
-                    createdAt: now,
-                };
-                rewardDelta = {
-                    attestation,
-                    reward,
-                    rewardFeed: {
-                        id: createId("feed"),
-                        type: "reward",
-                        message: `${user.username} earned ${rewardAmount} IVRT for ${action.actionType}`,
+                try {
+                    const attestationResult = await hederaService.recordAttestation(action.id, proofHash);
+                    const contractResult = await hederaService.registerAttestationOnChain(action.id, proofHash);
+                    const rewardAmount = this.calculateReward(action.actionType, action.quantity);
+                    const rewardResult = await hederaService.issueReward(action.id, user.walletAddress, rewardAmount);
+                    const attestation = {
+                        id: createId("att"),
+                        actionId: action.id,
+                        topicId: attestationResult.topicId,
+                        messageId: attestationResult.messageId,
+                        txId: attestationResult.txId,
+                        proofHash,
+                        contractTxId: contractResult?.txId,
                         createdAt: now,
-                    },
-                    rewardAmount,
-                    userId: user.id,
-                };
+                    };
+                    const reward = {
+                        id: createId("rew"),
+                        actionId: action.id,
+                        userId: user.id,
+                        tokenAmount: rewardResult.tokenAmount,
+                        txId: rewardResult.txId,
+                        createdAt: now,
+                    };
+                    rewardDelta = {
+                        attestation,
+                        reward,
+                        rewardFeed: {
+                            id: createId("feed"),
+                            type: "reward",
+                            message: `${user.username} earned ${rewardAmount} IVRT for ${action.actionType}`,
+                            createdAt: now,
+                        },
+                        rewardAmount,
+                        userId: user.id,
+                    };
+                }
+                catch (chainError) {
+                    const chainErrorMessage = chainError instanceof Error ? chainError.message : String(chainError);
+                    verificationChecks.push({
+                        id: createId("chk"),
+                        verificationId: verification.id,
+                        checkName: "onchain_anchor",
+                        passed: false,
+                        score: 40,
+                        detail: `Approved, but on-chain anchoring deferred: ${chainErrorMessage}`,
+                        createdAt: now,
+                    });
+                    logger.warn("On-chain anchoring failed; keeping action approved", {
+                        actionId,
+                        error: chainErrorMessage,
+                    });
+                }
             }
             await actionsRepository.persistVerificationOutcome(actionId, result.result, verification, verificationFeed, verificationChecks, rewardDelta);
             return this.getActionStatus(actionId);

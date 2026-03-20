@@ -230,12 +230,28 @@ export const actionsRepository = {
     return result.rowCount ? mapAction(result.rows[0]) : null;
   },
 
+  async claimQueuedAction(actionId: string) {
+    const result = await query(
+      `UPDATE actions
+       SET status = 'processing', updated_at = NOW()
+       WHERE id = $1
+         AND status = 'queued'
+       RETURNING *`,
+      [actionId],
+    );
+
+    return result.rowCount ? mapAction(result.rows[0]) : null;
+  },
+
   async listQueuedActionIds(limit = 25) {
     const result = await query(
       `SELECT a.id
        FROM actions a
        LEFT JOIN verifications v ON v.action_id = a.id
-       WHERE a.status = 'queued'
+       WHERE (
+         a.status = 'queued'
+         OR (a.status = 'processing' AND a.updated_at < NOW() - INTERVAL '2 minutes')
+       )
          AND v.id IS NULL
        ORDER BY a.submitted_at ASC
        LIMIT $1`,

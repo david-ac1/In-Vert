@@ -1,4 +1,4 @@
-export type ActionStatus = "submitted" | "queued" | "approved" | "rejected";
+export type ActionStatus = "submitted" | "queued" | "processing" | "approved" | "rejected";
 
 export interface UserRecord {
   id: string;
