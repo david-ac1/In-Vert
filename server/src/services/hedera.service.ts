@@ -40,6 +40,7 @@ export class HederaService {
       topicId,
       message: JSON.stringify({ actionId, proofHash }),
     });
+    tx.setMaxTransactionFee(new Hbar(1));
     const response = await this.executeTransaction(tx, client);
     const receipt = await response.getReceipt(client);
 
@@ -187,7 +188,7 @@ export class HederaService {
 
     const response = await new ContractExecuteTransaction()
       .setContractId(contractId)
-      .setGas(100_000)
+      .setGas(300_000)
       .setMaxTransactionFee(new Hbar(2))
       .setFunction(
         "registerAttestation",
