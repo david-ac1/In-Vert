@@ -8,7 +8,12 @@ class QueueService {
 
     if (env.AUTO_PROCESS_QUEUE) {
       setTimeout(() => {
-        void actionsService.processVerification(actionId);
+        void actionsService.processVerification(actionId).catch((error) => {
+          logger.error("Queued verification failed", {
+            actionId,
+            error: error instanceof Error ? error.message : String(error),
+          });
+        });
       }, 250);
     }
   }

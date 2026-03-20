@@ -1,6 +1,7 @@
 import { HttpError } from "../lib/http-error.js";
 import { createId } from "../lib/ids.js";
 import { env } from "../lib/env.js";
+import { logger } from "../lib/logger.js";
 import { actionsRepository } from "../repositories/actions.repository.js";
 import { hederaService } from "./hedera.service.js";
 import { verificationService } from "./verification.service.js";
@@ -45,80 +46,119 @@ class ActionsService {
     }
     async processVerification(actionId) {
         const action = await this.getAction(actionId);
-        const result = await verificationService.verify(action);
-        const now = new Date().toISOString();
-        await actionsRepository.upsertActionMediaSignals(result.mediaSignals);
-        const verification = {
-            id: createId("ver"),
-            actionId: action.id,
-            agentId: "rule-engine-v1",
-            result: result.result,
-            confidence: result.confidence,
-            reasonCodes: result.reasonCodes,
-            verifiedAt: now,
-        };
-        const verificationChecks = result.checks.map((check) => ({
-            id: createId("chk"),
-            verificationId: verification.id,
-            checkName: check.name,
-            passed: check.passed,
-            score: check.score,
-            detail: check.detail,
-            createdAt: now,
-        }));
-        const user = await this.getUser(action.userId);
-        const verificationFeed = {
-            id: createId("feed"),
-            type: "verification",
-            message: `${user.username} action ${action.id} ${result.result}`,
-            createdAt: now,
-        };
-        let rewardDelta;
-        if (result.result === "approved") {
-            const proofHash = hederaService.createProofHash(JSON.stringify({
+        try {
+            const result = await verificationService.verify(action);
+            const now = new Date().toISOString();
+            await actionsRepository.upsertActionMediaSignals(result.mediaSignals);
+            const verification = {
+                id: createId("ver"),
                 actionId: action.id,
-                userId: action.userId,
-                actionType: action.actionType,
-                quantity: action.quantity,
+                agentId: "rule-engine-v1",
+                result: result.result,
+                confidence: result.confidence,
+                reasonCodes: result.reasonCodes,
                 verifiedAt: now,
+            };
+            const verificationChecks = result.checks.map((check) => ({
+                id: createId("chk"),
+                verificationId: verification.id,
+                checkName: check.name,
+                passed: check.passed,
+                score: check.score,
+                detail: check.detail,
+                createdAt: now,
             }));
-            const attestationResult = await hederaService.recordAttestation(action.id, proofHash);
-            const contractResult = await hederaService.registerAttestationOnChain(action.id, proofHash);
-            const rewardAmount = this.calculateReward(action.actionType, action.quantity);
-            const rewardResult = await hederaService.issueReward(action.id, user.walletAddress, rewardAmount);
-            const attestation = {
-                id: createId("att"),
-                actionId: action.id,
-                topicId: attestationResult.topicId,
-                messageId: attestationResult.messageId,
-                txId: attestationResult.txId,
-                proofHash,
-                contractTxId: contractResult?.txId,
+            const user = await this.getUser(action.userId);
+            const verificationFeed = {
+                id: createId("feed"),
+                type: "verification",
+                message: `${user.username} action ${action.id} ${result.result}`,
                 createdAt: now,
             };
-            const reward = {
-                id: createId("rew"),
+            let rewardDelta;
+            if (result.result === "approved") {
+                const proofHash = hederaService.createProofHash(JSON.stringify({
+                    actionId: action.id,
+                    userId: action.userId,
+                    actionType: action.actionType,
+                    quantity: action.quantity,
+                    verifiedAt: now,
+                }));
+                const attestationResult = await hederaService.recordAttestation(action.id, proofHash);
+                const contractResult = await hederaService.registerAttestationOnChain(action.id, proofHash);
+                const rewardAmount = this.calculateReward(action.actionType, action.quantity);
+                const rewardResult = await hederaService.issueReward(action.id, user.walletAddress, rewardAmount);
+                const attestation = {
+                    id: createId("att"),
+                    actionId: action.id,
+                    topicId: attestationResult.topicId,
+                    messageId: attestationResult.messageId,
+                    txId: attestationResult.txId,
+                    proofHash,
+                    contractTxId: contractResult?.txId,
+                    createdAt: now,
+                };
+                const reward = {
+                    id: createId("rew"),
+                    actionId: action.id,
+                    userId: user.id,
+                    tokenAmount: rewardResult.tokenAmount,
+                    txId: rewardResult.txId,
+                    createdAt: now,
+                };
+                rewardDelta = {
+                    attestation,
+                    reward,
+                    rewardFeed: {
+                        id: createId("feed"),
+                        type: "reward",
+                        message: `${user.username} earned ${rewardAmount} IVRT for ${action.actionType}`,
+                        createdAt: now,
+                    },
+                    rewardAmount,
+                    userId: user.id,
+                };
+            }
+            await actionsRepository.persistVerificationOutcome(actionId, result.result, verification, verificationFeed, verificationChecks, rewardDelta);
+            return this.getActionStatus(actionId);
+        }
+        catch (error) {
+            const now = new Date().toISOString();
+            const errorMessage = error instanceof Error ? error.message : String(error);
+            const user = await this.getUser(action.userId);
+            const verification = {
+                id: createId("ver"),
                 actionId: action.id,
-                userId: user.id,
-                tokenAmount: rewardResult.tokenAmount,
-                txId: rewardResult.txId,
-                createdAt: now,
+                agentId: "rule-engine-v1",
+                result: "rejected",
+                confidence: 0,
+                reasonCodes: ["PROCESSING_ERROR"],
+                verifiedAt: now,
             };
-            rewardDelta = {
-                attestation,
-                reward,
-                rewardFeed: {
-                    id: createId("feed"),
-                    type: "reward",
-                    message: `${user.username} earned ${rewardAmount} IVRT for ${action.actionType}`,
+            const verificationChecks = [
+                {
+                    id: createId("chk"),
+                    verificationId: verification.id,
+                    checkName: "processing_error",
+                    passed: false,
+                    score: 0,
+                    detail: errorMessage,
                     createdAt: now,
                 },
-                rewardAmount,
-                userId: user.id,
+            ];
+            const verificationFeed = {
+                id: createId("feed"),
+                type: "verification",
+                message: `${user.username} action ${action.id} rejected`,
+                createdAt: now,
             };
+            await actionsRepository.persistVerificationOutcome(actionId, "rejected", verification, verificationFeed, verificationChecks);
+            logger.error("Verification pipeline failed; action marked rejected", {
+                actionId,
+                error: errorMessage,
+            });
+            return this.getActionStatus(actionId);
         }
-        await actionsRepository.persistVerificationOutcome(actionId, result.result, verification, verificationFeed, verificationChecks, rewardDelta);
-        return this.getActionStatus(actionId);
     }
     async getActionStatus(actionId) {
         const status = await actionsRepository.getActionStatus(actionId);
