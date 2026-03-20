@@ -230,6 +230,21 @@ export const actionsRepository = {
     return result.rowCount ? mapAction(result.rows[0]) : null;
   },
 
+  async listQueuedActionIds(limit = 25) {
+    const result = await query(
+      `SELECT a.id
+       FROM actions a
+       LEFT JOIN verifications v ON v.action_id = a.id
+       WHERE a.status = 'queued'
+         AND v.id IS NULL
+       ORDER BY a.submitted_at ASC
+       LIMIT $1`,
+      [limit],
+    );
+
+    return result.rows.map((row) => String(row.id));
+  },
+
   async findDuplicateByImageHash(input: {
     imageHash: string;
     actionId: string;
