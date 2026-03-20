@@ -44,15 +44,24 @@ class ImpactPoolsService {
         const poolHash = crypto.createHash("sha256").update(payloadForHash).digest("hex");
         const poolId = createId("pool");
         const title = input?.title?.trim() || `Impact Pool ${new Date().toISOString().slice(0, 10)}`;
-        await withTransaction(async (client) => {
-            await client.query(`INSERT INTO impact_pools (
-           id, title, status, total_actions, total_quantity, avg_confidence, geo_count, pool_hash, created_at
-         ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`, [poolId, title, "ready", actionIds.length, totalQuantity, avgConfidence, geoCount, poolHash, createdAt]);
-            for (const actionId of actionIds) {
-                await client.query(`INSERT INTO impact_pool_actions (pool_id, action_id, created_at)
-           VALUES ($1, $2, NOW())`, [poolId, actionId]);
+        try {
+            await withTransaction(async (client) => {
+                await client.query(`INSERT INTO impact_pools (
+             id, title, status, total_actions, total_quantity, avg_confidence, geo_count, pool_hash, created_at
+           ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`, [poolId, title, "ready", actionIds.length, totalQuantity, avgConfidence, geoCount, poolHash, createdAt]);
+                for (const actionId of actionIds) {
+                    await client.query(`INSERT INTO impact_pool_actions (pool_id, action_id, created_at)
+             VALUES ($1, $2, NOW())`, [poolId, actionId]);
+                }
+            });
+        }
+        catch (error) {
+            const code = error.code;
+            if (code === "23505") {
+                throw new HttpError(409, "Some approved actions were already pooled. Please retry once.");
             }
-        });
+            throw new HttpError(500, `Impact pool creation failed. ${error.message ?? "Unexpected database error"}`);
+        }
         return this.getPoolById(poolId);
     }
     async listPools() {
