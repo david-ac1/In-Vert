@@ -11,6 +11,11 @@ verificationsRouter.get("/verifications", async (_request, response) => {
 verificationsRouter.get("/protocol/stats", async (_request, response) => {
     return response.json(await actionsService.getProtocolStats());
 });
+verificationsRouter.get("/impact/mural", async (_request, response) => {
+    return response.json({
+        items: await actionsService.getSustainabilityMural(),
+    });
+});
 verificationsRouter.get("/protocol/attestations/:id", validateRequest(actionStatusParamsSchema), async (request, response) => {
     const attestation = await actionsService.getProtocolAttestation(String(request.params.id));
     return response.json(attestation);

@@ -205,6 +205,9 @@ class ActionsService {
     async getRecentVerifications() {
         return actionsRepository.getRecentVerifications();
     }
+    async getSustainabilityMural() {
+        return actionsRepository.getApprovedEvidenceMural();
+    }
     async getProtocolStats() {
         return actionsRepository.getProtocolStats();
     }

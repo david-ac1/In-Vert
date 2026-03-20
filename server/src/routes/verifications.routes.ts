@@ -15,6 +15,12 @@ verificationsRouter.get("/protocol/stats", async (_request, response) => {
   return response.json(await actionsService.getProtocolStats());
 });
 
+verificationsRouter.get("/impact/mural", async (_request, response) => {
+  return response.json({
+    items: await actionsService.getSustainabilityMural(),
+  });
+});
+
 verificationsRouter.get(
   "/protocol/attestations/:id",
   validateRequest(actionStatusParamsSchema),

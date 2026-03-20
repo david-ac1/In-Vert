@@ -3,6 +3,7 @@ import { SiteHeader } from "@/components/site-header";
 import { ImpactDashboard } from "@/components/impact-dashboard";
 import { ImpactPoolBoard } from "@/components/impact-pool-board";
 import { ProtocolStatsBar } from "@/components/protocol-stats-bar";
+import { SustainabilityMural } from "@/components/sustainability-mural";
 
 export default function ImpactPage() {
   return (
@@ -30,6 +31,10 @@ export default function ImpactPage() {
 
         <div className="mt-12">
           <ImpactPoolBoard />
+        </div>
+
+        <div className="mt-12">
+          <SustainabilityMural />
         </div>
       </main>
       <SiteFooter />

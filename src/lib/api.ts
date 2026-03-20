@@ -21,6 +21,15 @@ export interface VerificationQueueItem {
   verifiedAt: string;
 }
 
+export interface SustainabilityMuralItem {
+  actionId: string;
+  photoUrl: string;
+  actionType: string;
+  location: string;
+  username: string;
+  submittedAt: string;
+}
+
 export interface ActionStatusResponse {
   action: {
     id: string;
@@ -148,6 +157,8 @@ export const api = {
   getFeed: async () => readJson<{ items: FeedItem[] }>("/api/feed"),
   getVerifications: async () =>
     readJson<{ items: VerificationQueueItem[] }>("/api/verifications"),
+  getSustainabilityMural: async () =>
+    readJson<{ items: SustainabilityMuralItem[] }>("/api/impact/mural"),
   createAction: async (payload: {
     actionType: string;
     description: string;
