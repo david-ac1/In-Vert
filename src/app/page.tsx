@@ -13,12 +13,12 @@ export default function Home() {
             Hedera Apex 2026 Sustainability Track
           </p>
           <h1 className="mb-6 text-5xl font-black uppercase tracking-tight md:text-7xl">
-            Proof of Sustainability On-Chain
+            The Ledger of Invisible Impact
           </h1>
           <p className="max-w-2xl text-lg text-zinc-600">
-            In-Vert verifies real-world eco actions, anchors attestations on
-            Hedera, and distributes tokenized rewards through a transparent,
-            auditable impact loop.
+            While existing platforms track corporate sustainability, In-Vert captures and verifies
+            grassroots environmental actions that usually go unrecorded, then transforms them into
+            composable impact assets on Hedera.
           </p>
           <div className="mt-10 flex flex-wrap gap-4">
             <Link
@@ -76,10 +76,10 @@ export default function Home() {
           </div>
           <div className="border-2 border-black p-6">
             <h2 className="text-xs font-black uppercase tracking-[0.2em]">
-              04 Reward
+              04 Bundle
             </h2>
             <p className="mt-3 text-sm text-zinc-600">
-              Hedera Token Service rewards verified sustainability effort.
+              Approved actions are aggregated into Impact Pools for NGOs, sponsors, and carbon-linked workflows.
             </p>
           </div>
         </section>

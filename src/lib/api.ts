@@ -55,6 +55,32 @@ export interface ProtocolStats {
   totalAttestations: number;
 }
 
+export interface ImpactPoolSummary {
+  id: string;
+  title: string;
+  status: string;
+  totalActions: number;
+  totalQuantity: number;
+  avgConfidence: number;
+  geoCount: number;
+  poolHash: string;
+  createdAt: string;
+}
+
+export interface ImpactPoolDetail extends ImpactPoolSummary {
+  actionIds: string[];
+}
+
+export interface ImpactPoolExport {
+  schemaVersion: string;
+  exportedAt: string;
+  pool: ImpactPoolDetail;
+  composability: {
+    suggestedUseCases: string[];
+    verificationPrimitive: string;
+  };
+}
+
 export interface ProtocolAttestationResponse {
   schemaVersion: string;
   generatedAt: string;
@@ -144,6 +170,20 @@ export const api = {
     readJson<ProtocolAttestationResponse>(`/api/protocol/attestations/${actionId}`),
   getProtocolStats: async () =>
     readJson<ProtocolStats>("/api/protocol/stats"),
+  getImpactPools: async () =>
+    readJson<{ items: ImpactPoolSummary[] }>("/api/impact-pools"),
+  createImpactPool: async (payload?: { targetActions?: number; title?: string }) =>
+    readJson<ImpactPoolDetail>("/api/impact-pools", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(payload ?? {}),
+    }),
+  getImpactPool: async (poolId: string) =>
+    readJson<ImpactPoolDetail>(`/api/impact-pools/${poolId}`),
+  exportImpactPool: async (poolId: string) =>
+    readJson<ImpactPoolExport>(`/api/impact-pools/${poolId}/export`),
   uploadEvidence: async (file: File) => {
     const form = new FormData();
     form.append("file", file);
