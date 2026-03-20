@@ -1,0 +1,24 @@
+services:
+  - type: web
+    name: invert-api
+    runtime: node
+    rootDir: server
+    buildCommand: npm install && npm run build
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 3000
+      - key: SUPABASE_DATABASE_URL
+        sync: false
+      - key: HEDERA_NETWORK
+        value: testnet
+      - key: HEDERA_ACCOUNT_ID
+        sync: false
+      - key: HEDERA_PRIVATE_KEY
+        sync: false
+      - key: HEDERA_CONTRACT_ID
+        sync: false
+      - key: CLIENT_ORIGIN
+        value: https://in-vert-six.vercel.app
