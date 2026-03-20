@@ -13,7 +13,7 @@ export function SubmitActionForm() {
   const [selectedVector, setSelectedVector] = useState(vectors[0]);
   const [quantity, setQuantity] = useState(1);
   const [description, setDescription] = useState("");
-  const [location, setLocation] = useState("Lagos");
+  const [location, setLocation] = useState("Where are you?");
   const [evidenceMode, setEvidenceMode] = useState<"url" | "file">("url");
   const [photoUrl, setPhotoUrl] = useState("");
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
