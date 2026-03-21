@@ -36,8 +36,18 @@ uploadRouter.post("/upload", upload.single("file"), (request, response) => {
     return;
   }
 
-  const baseUrl =
-    process.env.SERVER_BASE_URL ?? `http://localhost:${process.env.PORT ?? 4000}`;
+  const forwardedProtoHeader = request.headers["x-forwarded-proto"];
+  const forwardedHostHeader = request.headers["x-forwarded-host"];
+  const forwardedProto = Array.isArray(forwardedProtoHeader)
+    ? forwardedProtoHeader[0]
+    : forwardedProtoHeader?.split(",")[0];
+  const forwardedHost = Array.isArray(forwardedHostHeader)
+    ? forwardedHostHeader[0]
+    : forwardedHostHeader;
+
+  const protocol = (forwardedProto ?? request.protocol ?? "http").trim();
+  const host = (forwardedHost ?? request.get("host") ?? `localhost:${process.env.PORT ?? 4000}`).trim();
+  const baseUrl = process.env.SERVER_BASE_URL ?? `${protocol}://${host}`;
   const url = `${baseUrl}/uploads/${request.file.filename}`;
 
   response.json({ url });

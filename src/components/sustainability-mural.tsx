@@ -11,6 +11,28 @@ function asColumns(items: SustainabilityMuralItem[], columnCount: number) {
   return columns;
 }
 
+function resolveMuralImageUrl(rawUrl: string) {
+  const trimmed = rawUrl.trim();
+  if (!trimmed) return trimmed;
+  if (trimmed.startsWith("/uploads/")) return trimmed;
+
+  try {
+    const parsed = new URL(trimmed);
+    if (parsed.pathname.startsWith("/uploads/")) {
+      // Use Next.js rewrite so legacy localhost URLs still resolve via deployed backend.
+      return parsed.pathname;
+    }
+    return trimmed;
+  } catch {
+    const marker = "/uploads/";
+    const index = trimmed.indexOf(marker);
+    if (index >= 0) {
+      return trimmed.slice(index);
+    }
+    return trimmed;
+  }
+}
+
 export function SustainabilityMural() {
   const [items, setItems] = useState<SustainabilityMuralItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -62,7 +84,7 @@ export function SustainabilityMural() {
               <figure key={item.actionId} className="overflow-hidden border-2 border-black bg-zinc-50">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
-                  src={item.photoUrl}
+                  src={resolveMuralImageUrl(item.photoUrl)}
                   alt={`${item.actionType} by ${item.username}`}
                   className="h-44 w-full object-cover"
                   loading="lazy"
@@ -87,7 +109,7 @@ export function SustainabilityMural() {
           <figure key={item.actionId} className="overflow-hidden border-2 border-black bg-zinc-50">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
-              src={item.photoUrl}
+              src={resolveMuralImageUrl(item.photoUrl)}
               alt={`${item.actionType} by ${item.username}`}
               className="h-28 w-full object-cover"
               loading="lazy"
