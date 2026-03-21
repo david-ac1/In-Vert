@@ -26,6 +26,12 @@ export function SiteHeader() {
             Nodes
           </Link>
           <Link
+            href="/mural"
+            className="text-sm font-black uppercase tracking-widest transition-colors hover:text-primary"
+          >
+            Mural
+          </Link>
+          <Link
             href="/attestations"
             className="text-sm font-black uppercase tracking-widest transition-colors hover:text-primary"
           >

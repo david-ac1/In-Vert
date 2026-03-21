@@ -353,15 +353,15 @@ export const actionsRepository = {
             verifiedAt: new Date(String(row.verified_at)).toISOString(),
         }));
     },
-    async getApprovedEvidenceMural(limit = 120) {
-        const result = await query(`SELECT a.id, a.photo_url, a.action_type, a.location, a.submitted_at, u.username
+    async getEvidenceMural(limit = 120) {
+        const result = await query(`SELECT a.id, a.photo_url, a.action_type, a.location, a.submitted_at, a.status, u.username,
+              v.result AS verification_result
        FROM actions a
-       INNER JOIN verifications v ON v.action_id = a.id
+       LEFT JOIN verifications v ON v.action_id = a.id
        INNER JOIN users u ON u.id = a.user_id
-       WHERE v.result = 'approved'
-         AND a.photo_url IS NOT NULL
+       WHERE a.photo_url IS NOT NULL
          AND length(trim(a.photo_url)) > 0
-       ORDER BY v.verified_at DESC
+       ORDER BY a.submitted_at DESC
        LIMIT $1`, [limit]);
         return result.rows.map((row) => ({
             actionId: String(row.id),
@@ -369,6 +369,8 @@ export const actionsRepository = {
             actionType: String(row.action_type),
             location: String(row.location),
             username: String(row.username),
+            status: String(row.status),
+            verificationResult: row.verification_result ? String(row.verification_result) : null,
             submittedAt: new Date(String(row.submitted_at)).toISOString(),
         }));
     },

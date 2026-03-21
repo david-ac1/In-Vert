@@ -3,7 +3,7 @@ import { SiteHeader } from "@/components/site-header";
 import { ImpactDashboard } from "@/components/impact-dashboard";
 import { ImpactPoolBoard } from "@/components/impact-pool-board";
 import { ProtocolStatsBar } from "@/components/protocol-stats-bar";
-import { SustainabilityMural } from "@/components/sustainability-mural";
+import Link from "next/link";
 
 export default function ImpactPage() {
   return (
@@ -33,8 +33,18 @@ export default function ImpactPage() {
           <ImpactPoolBoard />
         </div>
 
-        <div className="mt-12">
-          <SustainabilityMural />
+        <div className="mt-12 border-2 border-black bg-white p-6 shadow-[8px_8px_0_0_#000] md:p-8">
+          <p className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-500">Visual Evidence</p>
+          <h2 className="mt-2 text-2xl font-black uppercase tracking-tight md:text-4xl">Sustainability Mural</h2>
+          <p className="mt-2 max-w-2xl text-sm text-zinc-600">
+            Explore the full community photo wall on its own dedicated tab.
+          </p>
+          <Link
+            href="/mural"
+            className="mt-4 inline-block border-2 border-black bg-black px-5 py-3 text-xs font-black uppercase tracking-widest text-white transition-colors hover:bg-zinc-800"
+          >
+            Open Mural
+          </Link>
         </div>
       </main>
       <SiteFooter />

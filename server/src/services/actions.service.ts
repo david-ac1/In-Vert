@@ -276,7 +276,7 @@ class ActionsService {
   }
 
   async getSustainabilityMural() {
-    return actionsRepository.getApprovedEvidenceMural();
+    return actionsRepository.getEvidenceMural();
   }
 
   async getProtocolStats() {

@@ -27,6 +27,8 @@ export interface SustainabilityMuralItem {
   actionType: string;
   location: string;
   username: string;
+  status: string;
+  verificationResult: string | null;
   submittedAt: string;
 }
 
