@@ -16,6 +16,14 @@ verificationsRouter.get("/impact/mural", async (_request, response) => {
         items: await actionsService.getSustainabilityMural(),
     });
 });
+verificationsRouter.get("/forest/summary", async (_request, response) => {
+    return response.json(await actionsService.getForestSummary());
+});
+verificationsRouter.get("/forest/trees", async (_request, response) => {
+    return response.json({
+        items: await actionsService.getForestTrees(),
+    });
+});
 verificationsRouter.get("/protocol/attestations/:id", validateRequest(actionStatusParamsSchema), async (request, response) => {
     const attestation = await actionsService.getProtocolAttestation(String(request.params.id));
     return response.json(attestation);

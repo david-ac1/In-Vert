@@ -37,6 +37,7 @@ export function SustainabilityMural() {
   const [items, setItems] = useState<SustainabilityMuralItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [failedIds, setFailedIds] = useState<Record<string, true>>({});
 
   useEffect(() => {
     async function load() {
@@ -54,7 +55,11 @@ export function SustainabilityMural() {
     void load();
   }, []);
 
-  const columns = useMemo(() => asColumns(items, 4), [items]);
+  const visibleItems = useMemo(
+    () => items.filter((item) => !failedIds[item.actionId]),
+    [items, failedIds],
+  );
+  const columns = useMemo(() => asColumns(visibleItems, 4), [visibleItems]);
 
   function badgeClass(status: string) {
     if (status === "approved") return "bg-emerald-100 text-emerald-900 border-emerald-700";
@@ -68,13 +73,13 @@ export function SustainabilityMural() {
       <p className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-500">Living Evidence</p>
       <h2 className="mt-2 text-2xl font-black uppercase tracking-tight md:text-4xl">Sustainability Mural</h2>
       <p className="mt-2 max-w-2xl text-sm text-zinc-600">
-        Every tile below is a submitted grassroots contribution. Approved entries represent verified impact, while queued and rejected entries preserve transparent history.
+        Every tile below is an approved grassroots contribution that passed verification.
       </p>
 
       {error ? <p className="mt-4 text-sm font-bold text-red-600">{error}</p> : null}
       {loading ? <p className="mt-4 text-sm font-bold">Loading mural...</p> : null}
-      {!loading && items.length === 0 ? (
-        <p className="mt-4 text-sm font-bold text-zinc-600">No submitted evidence yet. Start by submitting an action.</p>
+      {!loading && visibleItems.length === 0 ? (
+        <p className="mt-4 text-sm font-bold text-zinc-600">No approved evidence is currently available to render.</p>
       ) : null}
 
       <div className="mt-6 hidden gap-4 md:grid md:grid-cols-4">
@@ -89,6 +94,9 @@ export function SustainabilityMural() {
                   className="h-44 w-full object-cover"
                   loading="lazy"
                   referrerPolicy="no-referrer"
+                  onError={() => {
+                    setFailedIds((prev) => ({ ...prev, [item.actionId]: true }));
+                  }}
                 />
                 <figcaption className="border-t-2 border-black p-2 text-[10px] font-black uppercase tracking-wide text-zinc-700">
                   <div className="flex items-center justify-between gap-2">
@@ -114,6 +122,9 @@ export function SustainabilityMural() {
               className="h-28 w-full object-cover"
               loading="lazy"
               referrerPolicy="no-referrer"
+              onError={() => {
+                setFailedIds((prev) => ({ ...prev, [item.actionId]: true }));
+              }}
             />
             <figcaption className="border-t-2 border-black p-1.5 text-[9px] font-black uppercase tracking-wide text-zinc-700">
               <span className={`border px-1 py-0.5 ${badgeClass(item.status)}`}>

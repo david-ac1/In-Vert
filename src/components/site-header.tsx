@@ -20,6 +20,12 @@ export function SiteHeader() {
             Impact
           </Link>
           <Link
+            href="/forest"
+            className="text-sm font-black uppercase tracking-widest transition-colors hover:text-primary"
+          >
+            Forest
+          </Link>
+          <Link
             href="/verification"
             className="text-sm font-black uppercase tracking-widest transition-colors hover:text-primary"
           >

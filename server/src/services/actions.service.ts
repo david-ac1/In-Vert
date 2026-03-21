@@ -1,3 +1,6 @@
+import { existsSync } from "node:fs";
+import { createHash } from "node:crypto";
+import path from "node:path";
 import { HttpError } from "../lib/http-error.js";
 import { createId } from "../lib/ids.js";
 import { env } from "../lib/env.js";
@@ -24,6 +27,22 @@ interface CreateActionInput {
   walletAddress: string;
   username: string;
 }
+
+type ForestTree = {
+  id: string;
+  actionId: string;
+  actionType: string;
+  quantity: number;
+  location: string;
+  username: string;
+  photoUrl: string;
+  confidence: number;
+  verifiedAt: string;
+  growthStage: "seedling" | "young" | "mature";
+  species: "oak" | "pine" | "mangrove";
+  position: { x: number; z: number };
+  scale: number;
+};
 
 class ActionsService {
   async createAction(input: CreateActionInput) {
@@ -276,7 +295,67 @@ class ActionsService {
   }
 
   async getSustainabilityMural() {
-    return actionsRepository.getEvidenceMural();
+    const items = await actionsRepository.getEvidenceMural();
+    const filtered = items.filter((item) => {
+      const localPath = this.resolveLocalUploadPath(item.photoUrl);
+      if (!localPath) return true;
+      return existsSync(localPath);
+    });
+
+    return filtered.map((item) => ({
+      ...item,
+      photoUrl: this.normalizeUploadUrl(item.photoUrl),
+      status: "approved",
+      verificationResult: "approved",
+    }));
+  }
+
+  async getForestTrees() {
+    const approved = await actionsRepository.getApprovedForestSource();
+
+    return approved.map((item, index): ForestTree => {
+      const position = this.computeForestPosition(item.actionId, index);
+      const growthStage = this.computeGrowthStage(item.verifiedAt);
+      const species = this.mapSpecies(item.actionType);
+      const scale = Math.max(0.8, Math.min(2.8, 0.8 + Math.log1p(item.quantity) * 0.5));
+
+      return {
+        id: `tree_${item.actionId}`,
+        actionId: item.actionId,
+        actionType: item.actionType,
+        quantity: item.quantity,
+        location: item.location,
+        username: item.username,
+        photoUrl: this.normalizeUploadUrl(item.photoUrl),
+        confidence: item.confidence,
+        verifiedAt: item.verifiedAt,
+        growthStage,
+        species,
+        position,
+        scale,
+      };
+    });
+  }
+
+  async getForestSummary() {
+    const trees = await this.getForestTrees();
+    const bySpecies = trees.reduce<Record<string, number>>((acc, tree) => {
+      acc[tree.species] = (acc[tree.species] ?? 0) + 1;
+      return acc;
+    }, {});
+
+    const avgConfidence =
+      trees.length === 0
+        ? 0
+        : Math.round(trees.reduce((sum, tree) => sum + tree.confidence, 0) / trees.length);
+
+    return {
+      totalTrees: trees.length,
+      totalActions: trees.length,
+      totalQuantity: trees.reduce((sum, tree) => sum + tree.quantity, 0),
+      averageConfidence: avgConfidence,
+      speciesBreakdown: bySpecies,
+    };
   }
 
   async getProtocolStats() {
@@ -412,6 +491,69 @@ class ActionsService {
     }
 
     return user;
+  }
+
+  private normalizeUploadUrl(rawUrl: string) {
+    const trimmed = rawUrl.trim();
+    if (!trimmed) return trimmed;
+    if (trimmed.startsWith("/uploads/")) return trimmed;
+
+    try {
+      const parsed = new URL(trimmed);
+      if (parsed.pathname.startsWith("/uploads/")) {
+        return parsed.pathname;
+      }
+      return trimmed;
+    } catch {
+      const marker = "/uploads/";
+      const index = trimmed.indexOf(marker);
+      return index >= 0 ? trimmed.slice(index) : trimmed;
+    }
+  }
+
+  private resolveLocalUploadPath(rawUrl: string) {
+    const normalized = this.normalizeUploadUrl(rawUrl);
+    if (!normalized.startsWith("/uploads/")) {
+      return null;
+    }
+
+    const fileName = normalized.slice("/uploads/".length);
+    if (!fileName) return null;
+
+    const candidates = [
+      path.resolve(process.cwd(), "uploads", fileName),
+      path.resolve(process.cwd(), "server", "uploads", fileName),
+    ];
+
+    return candidates.find((candidate) => existsSync(candidate)) ?? candidates[0];
+  }
+
+  private computeGrowthStage(verifiedAtIso: string): "seedling" | "young" | "mature" {
+    const ageMs = Date.now() - new Date(verifiedAtIso).getTime();
+    const ageDays = ageMs / (1000 * 60 * 60 * 24);
+    if (ageDays >= 3) return "mature";
+    if (ageDays >= 1) return "young";
+    return "seedling";
+  }
+
+  private mapSpecies(actionType: string): "oak" | "pine" | "mangrove" {
+    const normalized = actionType.toLowerCase();
+    if (normalized.includes("cleanup")) return "mangrove";
+    if (normalized.includes("recycl")) return "pine";
+    return "oak";
+  }
+
+  private computeForestPosition(actionId: string, index: number) {
+    const hash = createHash("sha256").update(actionId).digest("hex");
+    const a = parseInt(hash.slice(0, 8), 16) / 0xffffffff;
+    const b = parseInt(hash.slice(8, 16), 16) / 0xffffffff;
+
+    const radius = 5 + a * 55;
+    const theta = b * Math.PI * 2 + index * 0.035;
+    const x = Number((Math.cos(theta) * radius).toFixed(2));
+    const z = Number((Math.sin(theta) * radius).toFixed(2));
+
+    return { x, z };
   }
 }
 

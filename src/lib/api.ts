@@ -32,6 +32,30 @@ export interface SustainabilityMuralItem {
   submittedAt: string;
 }
 
+export interface ForestTreeItem {
+  id: string;
+  actionId: string;
+  actionType: string;
+  quantity: number;
+  location: string;
+  username: string;
+  photoUrl: string;
+  confidence: number;
+  verifiedAt: string;
+  growthStage: "seedling" | "young" | "mature";
+  species: "oak" | "pine" | "mangrove";
+  position: { x: number; z: number };
+  scale: number;
+}
+
+export interface ForestSummary {
+  totalTrees: number;
+  totalActions: number;
+  totalQuantity: number;
+  averageConfidence: number;
+  speciesBreakdown: Record<string, number>;
+}
+
 export interface ActionStatusResponse {
   action: {
     id: string;
@@ -159,6 +183,10 @@ export const api = {
   getFeed: async () => readJson<{ items: FeedItem[] }>("/api/feed"),
   getVerifications: async () =>
     readJson<{ items: VerificationQueueItem[] }>("/api/verifications"),
+  getForestSummary: async () =>
+    readJson<ForestSummary>("/api/forest/summary"),
+  getForestTrees: async () =>
+    readJson<{ items: ForestTreeItem[] }>("/api/forest/trees"),
   getSustainabilityMural: async () =>
     readJson<{ items: SustainabilityMuralItem[] }>("/api/impact/mural"),
   createAction: async (payload: {
