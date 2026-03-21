@@ -314,7 +314,7 @@ class ActionsService {
     const approved = await actionsRepository.getApprovedForestSource();
 
     return approved.map((item, index): ForestTree => {
-      const position = this.computeForestPosition(item.actionId, index);
+      const position = this.computeForestPosition(item.actionId, index, approved.length);
       const growthStage = this.computeGrowthStage(item.verifiedAt);
       const species = this.mapSpecies(item.actionType);
       const scale = Math.max(0.8, Math.min(2.8, 0.8 + Math.log1p(item.quantity) * 0.5));
@@ -543,12 +543,14 @@ class ActionsService {
     return "oak";
   }
 
-  private computeForestPosition(actionId: string, index: number) {
+  private computeForestPosition(actionId: string, index: number, total: number) {
     const hash = createHash("sha256").update(actionId).digest("hex");
     const a = parseInt(hash.slice(0, 8), 16) / 0xffffffff;
     const b = parseInt(hash.slice(8, 16), 16) / 0xffffffff;
 
-    const radius = 5 + a * 55;
+    const maxRadius = total <= 30 ? 18 : 55;
+    const minRadius = total <= 30 ? 3 : 5;
+    const radius = minRadius + a * maxRadius;
     const theta = b * Math.PI * 2 + index * 0.035;
     const x = Number((Math.cos(theta) * radius).toFixed(2));
     const z = Number((Math.sin(theta) * radius).toFixed(2));
