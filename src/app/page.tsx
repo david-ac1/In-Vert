@@ -9,9 +9,6 @@ export default function Home() {
       <SiteHeader />
       <main className="mx-auto max-w-[1200px] px-4 py-16 md:px-8">
         <section className="mb-16 border-2 border-black p-8 md:p-12 shadow-[12px_12px_0_0_#000]">
-          <p className="mb-6 inline-flex items-center gap-2 border-2 border-black px-4 py-2 text-[10px] font-black uppercase tracking-[0.2em]">
-            Hedera Apex 2026 Sustainability Track
-          </p>
           <h1 className="mb-6 text-5xl font-black uppercase tracking-tight md:text-7xl">
             The Ledger of Invisible Impact
           </h1>

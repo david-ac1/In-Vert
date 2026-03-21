@@ -2,7 +2,7 @@
 
 ## 1) Inputs Used as Source of Truth
 - Design system source: `invert-screens/` (absolute UI truth)
-- Hackathon constraints: `Hackathon.md` (Hedera Hello Future Apex 2026)
+- Hackathon constraints: `Hackathon.md` (Hedera Hello Future Hackathon 2026)
 - Product requirements: `PRD.md`
 
 ## 2) Winning Strategy for Hedera Hackathon 2026

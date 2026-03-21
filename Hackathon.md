@@ -1,6 +1,6 @@
 
 Event Banner
-Hedera Hello Future Apex Hackathon 2026
+Hedera Hello Future Hackathon 2026
 Hosted by
 AngelHack
 AngelHack
@@ -56,9 +56,9 @@ Prizes
 Bounties
 Links
 About
-Hedera Hello Future Apex Hackathon 2026
+Hedera Hello Future Hackathon 2026
 
-The Hedera Hello Future Apex Hackathon brings together new and experienced builders worldwide to collaborate and compete virtually.
+The Hedera Hello Future Hackathon brings together new and experienced builders worldwide to collaborate and compete virtually.
 
 
 
