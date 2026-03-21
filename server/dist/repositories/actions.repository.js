@@ -379,10 +379,10 @@ export const actionsRepository = {
         const result = await query(`SELECT a.id, a.action_type, a.quantity, a.location, a.submitted_at, a.photo_url,
               v.confidence, v.verified_at, u.username
        FROM actions a
-       INNER JOIN verifications v ON v.action_id = a.id
+       LEFT JOIN verifications v ON v.action_id = a.id
        INNER JOIN users u ON u.id = a.user_id
-       WHERE v.result = 'approved'
-       ORDER BY v.verified_at ASC
+       WHERE (a.status = 'approved' OR v.result = 'approved')
+       ORDER BY COALESCE(v.verified_at, a.updated_at, a.submitted_at) ASC
        LIMIT $1`, [limit]);
         return result.rows.map((row) => ({
             actionId: String(row.id),
@@ -390,8 +390,8 @@ export const actionsRepository = {
             quantity: Number(row.quantity),
             location: String(row.location),
             photoUrl: String(row.photo_url),
-            confidence: Number(row.confidence),
-            verifiedAt: new Date(String(row.verified_at)).toISOString(),
+            confidence: row.confidence === null ? 70 : Number(row.confidence),
+            verifiedAt: new Date(String(row.verified_at ?? row.submitted_at)).toISOString(),
             submittedAt: new Date(String(row.submitted_at)).toISOString(),
             username: String(row.username),
         }));
